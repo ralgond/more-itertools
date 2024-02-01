@@ -8,7 +8,8 @@ use crate::error;
 pub struct Chunked<I: Iterator> {
     buf: Vec<I::Item>,
     n: usize,
-    iter: I
+    iter: I,
+    strict: bool
 }
 
 
@@ -31,6 +32,9 @@ impl<I: Iterator> Iterator for Chunked<I> {
                     } else {
                         swap(&mut ret, &mut self.buf);
                         self.buf = Vec::new();
+                        if self.strict && ret.len() < self.n {
+                            return Some(Err(error::value_error(String::from("iterable is not divisible by n."))));
+                        }
                         return Some(Ok(ret));
                     }
                 }
@@ -59,14 +63,15 @@ impl<I: Iterator> Iterator for Chunked<I> {
     }
 }
 
-pub fn chunked<I>(iterable: I, n: usize) -> Chunked<I::IntoIter>
+pub fn chunked<I>(iterable: I, n: usize, strict: bool) -> Chunked<I::IntoIter>
 where
     I: IntoIterator,
 {
     Chunked {
         buf: Vec::new(),
         n: n,
-        iter: iterable.into_iter()
+        iter: iterable.into_iter(),
+        strict: strict
     }
 }
 
@@ -76,8 +81,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test1() {
-        let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 3);
+    fn test1_no_strict() {
+        let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 3, false);
         // println!("{:?}", it.next());
         // println!("{:?}", it.next());
         // println!("{:?}", it.next());
@@ -112,6 +117,31 @@ mod tests {
         match it.next() {
             Some(_) => { assert!(false) }
             None => { assert!(true) }
+        }
+    }
+
+    #[test]
+    fn test1_strict() {
+        let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 3, true);
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec![1,2,3]); },
+            Err(_) => {}
+        }
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec![4,5,6]); },
+            Err(_) => {}
+        }
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec![7,8,9]); },
+            Err(_) => {}
+        }
+
+        match it.next().unwrap() {
+            Ok(_) => { assert!(false) },
+            Err(_) => { assert!(true)}
         }
     }
 }
