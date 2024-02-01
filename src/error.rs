@@ -1,5 +1,4 @@
 use std::fmt;
-use std::io;
 
 pub struct Error {
     inner: Box<Inner>,
