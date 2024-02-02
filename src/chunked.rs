@@ -46,23 +46,13 @@ impl<I: Iterator> Iterator for Chunked<I> {
                 return Some(Ok(ret));
             }
         }
-        
-        // while self.visited_cnt < self.n {
-        //     self.visited_cnt += 1;
-        //     if self.buf.len() == self.n {
-        //         swap(&mut ret, &mut self.buf);
-        //         break;
-        //     } else if self.visited_cnt == self.n {
-        //         swap(&mut ret, &mut self.buf);
-        //         break;
-        //     }
-        // }
 
         return Some(Ok(ret));
 
     }
 }
 
+/// https://more-itertools.readthedocs.io/en/stable/_modules/more_itertools/more.html#chunked
 pub fn chunked<I>(iterable: I, n: usize, strict: bool) -> Chunked<I::IntoIter>
 where
     I: IntoIterator,
@@ -121,7 +111,7 @@ mod tests {
     }
 
     #[test]
-    fn test1_strict() {
+    fn test2_strict() {
         let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 3, true);
 
         match it.next().unwrap() {
@@ -142,6 +132,72 @@ mod tests {
         match it.next().unwrap() {
             Ok(_) => { assert!(false) },
             Err(_) => { assert!(true)}
+        }
+    }
+
+    #[test]
+    fn test3_no_strict_chars() {
+        let mut it = chunked("abcdefghij".chars(), 3, false);
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec!['a','b','c']); },
+            Err(_) => {}
+        }
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec!['d', 'e', 'f']); },
+            Err(_) => {}
+        }
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec!['g', 'h', 'i']); },
+            Err(_) => {}
+        }
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec!['j']); },
+            Err(_) => {}
+        }
+
+        match it.next() {
+            Some(_) => { assert!(false) }
+            None => { assert!(true) }
+        }
+
+        match it.next() {
+            Some(_) => { assert!(false) }
+            None => { assert!(true) }
+        }
+    }
+
+    #[test]
+    fn test3_no_strict_string() {
+        let v: [String; 4] = [String::from("1"),
+                            String::from("2"),
+                            String::from("3"),
+                            String::from("4")
+                            ];
+
+        let mut it = chunked(v, 3, false);
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec![String::from("1"), String::from("2") ,String::from("3")]); },
+            Err(_) => {}
+        }
+
+        match it.next().unwrap() {
+            Ok(value) => { assert_eq!(value, vec![String::from("4")]); },
+            Err(_) => {}
+        }
+
+        match it.next() {
+            Some(_) => { assert!(false) }
+            None => { assert!(true) }
+        }
+
+        match it.next() {
+            Some(_) => { assert!(false) }
+            None => { assert!(true) }
         }
     }
 }
