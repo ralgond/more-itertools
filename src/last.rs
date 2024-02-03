@@ -3,6 +3,7 @@ use std::collections::LinkedList;
 use crate::error::Error;
 use crate::error;
 
+/// https://more-itertools.readthedocs.io/en/stable/_modules/more_itertools/more.html#last
 pub fn last<I>(iterable: I, default: Option<I::Item>) -> Result<I::Item, Error>
 where
     I: IntoIterator,

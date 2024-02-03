@@ -2,7 +2,7 @@ pub mod error;
 /// #[cfg(feature = "use_alloc")]
 pub mod chunked;
 
-pub mod sliced;
+pub mod islice;
 
 pub mod peekable;
 
