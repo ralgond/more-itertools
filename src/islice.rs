@@ -154,4 +154,11 @@ mod tests {
             None => { assert!(true)}
         }
     }
+
+    // #[test]
+    // fn test2() {
+    //     let v3  = vec![0,1,2,3,4,5,6,7,8,9,10];
+    //     let mut i3 = islice(v3, 3, 11, 3);
+    //     i3.collect()
+    // }
 }
