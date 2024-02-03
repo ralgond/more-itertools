@@ -7,3 +7,5 @@ pub mod sliced;
 pub mod peekable;
 
 pub mod first;
+
+pub mod last;

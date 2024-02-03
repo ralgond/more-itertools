@@ -45,6 +45,15 @@ mod tests {
             Ok(_) => { assert!(false) },
             Err(_) => { assert!(true) }
         }
+
+        let v = vec![1,2,3];
+        let ret4 = first(v, Some(0));
+        match ret4 {
+            Ok(v) => { assert_eq!(1, v) },
+            Err(_) => { assert!(false) }
+        }
+
+        // println!("{:?}", v);
     }
 }
 
