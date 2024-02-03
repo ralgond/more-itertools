@@ -1,4 +1,4 @@
-use std::{collections::VecDeque};
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone)]
 pub struct Peekable<I: Iterator> {
