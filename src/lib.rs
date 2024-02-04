@@ -13,3 +13,5 @@ pub mod last;
 pub mod nth_or_last;
 
 pub mod spy;
+
+pub mod windowing;
