@@ -1,4 +1,4 @@
-/// https://more-itertools.readthedocs.io/en/stable/api.html#more_itertools.spy
+/// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#spy
 pub fn spy<I>(iterable: I, n: usize) -> Option<Vec<I::Item>> 
 where
     I: IntoIterator,

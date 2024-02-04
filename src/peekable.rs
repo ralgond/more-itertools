@@ -26,7 +26,7 @@ where
 
 impl<I: Iterator> Peekable<I> {
 
-    fn peek(&mut self) -> Option<&I::Item> {
+    pub fn peek(&mut self) -> Option<&I::Item> {
         match self.buf.pop_front() {
             None => {
                 match self.iter.next() {
@@ -44,14 +44,14 @@ impl<I: Iterator> Peekable<I> {
         return self.buf.front();
     }
 
-    fn prepend(&mut self, args: Vec<I::Item>) {
+    pub fn prepend(&mut self, args: Vec<I::Item>) {
         for item in args.into_iter().rev() {
             self.buf.push_front(item);
         }
     }
 }
 
-/// https://more-itertools.readthedocs.io/en/stable/_modules/more_itertools/more.html#peekable
+/// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#peekable
 pub fn peekable<I>(iterable: I) -> Peekable<I::IntoIter>
 where
     I: IntoIterator,

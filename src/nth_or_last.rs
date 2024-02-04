@@ -2,7 +2,7 @@ use crate::error::Error;
 use crate::error;
 use std::collections::LinkedList;
 
-/// https://more-itertools.readthedocs.io/en/stable/_modules/more_itertools/more.html#nth_or_last
+/// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#nth_or_last
 pub fn nth_or_last<I>(iterable: I, n: usize, default: Option<I::Item>) -> Result<I::Item, Error>
 where
     I: IntoIterator,

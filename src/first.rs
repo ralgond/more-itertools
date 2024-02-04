@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::error;
 
-/// https://more-itertools.readthedocs.io/en/stable/_modules/more_itertools/more.html#first
+/// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#first
 pub fn first<I>(iterable: I, default: Option<I::Item>) -> Result<I::Item, Error>
 where
     I: IntoIterator,

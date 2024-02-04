@@ -52,7 +52,7 @@ impl<I: Iterator> Iterator for Chunked<I> {
     }
 }
 
-/// https://more-itertools.readthedocs.io/en/stable/_modules/more_itertools/more.html#chunked
+/// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#chunked
 pub fn chunked<I>(iterable: I, n: usize, strict: bool) -> Chunked<I::IntoIter>
 where
     I: IntoIterator,
