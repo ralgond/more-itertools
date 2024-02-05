@@ -1,17 +1,11 @@
 pub mod error;
-/// #[cfg(feature = "use_alloc")]
-pub mod chunked;
+// #[cfg(feature = "use_alloc")]
+pub mod grouping;
+
+pub mod look_ahead_back;
 
 pub mod islice;
 
-pub mod peekable;
-
-pub mod first;
-
-pub mod last;
-
-pub mod nth_or_last;
-
-pub mod spy;
+pub mod selecting;
 
 pub mod windowing;
