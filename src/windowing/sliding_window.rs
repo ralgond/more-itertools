@@ -1,12 +1,38 @@
 use super::windowed::{windowed, Windowed};
+use crate::error::Error;
 
-pub fn sliding_windowed<I>(iterable: I, n: usize) -> Windowed<I::IntoIter>
+pub struct SlidingWindow<I>
+where 
+    I: IntoIterator,
+    I::Item: Clone
+{
+    windowed: Windowed<I::IntoIter>
+}
+
+impl<I> Iterator for SlidingWindow<I> 
+where 
+    I: Iterator,
+    I::Item: Clone
+{
+    type Item = Result<Vec<<I as Iterator>::Item>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        return self.windowed.next();
+    }
+}
+
+pub fn sliding_windowed<I>(iterable: I, n: usize) -> SlidingWindow<I::IntoIter>
 where
     I: IntoIterator,
     I::Item: Clone
 {
-    return windowed(iterable, n, 1);
+    let ret: SlidingWindow<_> = SlidingWindow {
+        windowed: windowed(iterable, n, 1)
+    };
+
+    return ret;
 }
+
 
 
 mod tests {
