@@ -1,3 +1,5 @@
+
+
 use std::str::Chars;
 
 pub struct SubstringsIndexes<'a> {
