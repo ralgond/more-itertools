@@ -6,3 +6,4 @@ pub mod only;
 pub mod strictly_n;
 pub mod filter_except;
 pub mod filter_map;
+pub mod map_except;
