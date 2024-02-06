@@ -33,6 +33,7 @@ where
     return ret;
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

@@ -30,6 +30,7 @@ I::Item: Clone
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

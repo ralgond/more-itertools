@@ -14,9 +14,10 @@ where
     return Some(ret);
 }
 
-
+#[cfg(test)]
 mod tests {
-    use super::spy;
+    
+    use super::*;
 
     #[test]
     fn test1() {

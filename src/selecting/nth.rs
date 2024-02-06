@@ -1,7 +1,4 @@
-use std::default;
-
 use crate::islice::islice;
-
 
 pub fn nth<I>(iterable: I, n: usize, default: Option<I::Item>) -> Option<I::Item>
 where

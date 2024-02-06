@@ -1,3 +1,5 @@
+#![warn(unused_imports)]
+
 pub mod error;
 // #[cfg(feature = "use_alloc")]
 pub mod grouping;

@@ -56,7 +56,7 @@ I: IntoIterator,
     }
 }
 
-
+#[cfg(test)]
 mod tests {
     use super::*;
 

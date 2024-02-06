@@ -59,9 +59,9 @@ pub(crate) fn value_error(e: String) -> Error {
     Error::new(Kind::ValueError, Some(e))
 }
 
-pub(crate) fn type_error(e: String) -> Error {
-    Error::new(Kind::TypeError, Some(e))
-}
+// pub(crate) fn type_error(e: String) -> Error {
+//     Error::new(Kind::TypeError, Some(e))
+// }
 
 pub(crate) fn any_error(kind: Kind, e: String) -> Error {
     Error::new(kind, Some(e))
