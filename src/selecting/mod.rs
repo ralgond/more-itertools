@@ -4,3 +4,4 @@ pub mod nth_or_last;
 pub mod one;
 pub mod only;
 pub mod strictly_n;
+pub mod filter_except;

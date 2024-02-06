@@ -6,7 +6,7 @@ pub struct Error {
 
 struct Inner {
     kind: Kind,
-    message: Option<String>,
+    message: Option<String>
 }
 
 impl Error {
@@ -18,6 +18,10 @@ impl Error {
                 message: message,
             }),
         }
+    }
+
+    pub fn kind(&self) -> Kind {
+        return self.inner.kind;
     }
 
     pub fn message(&self) -> Option<&String> {
@@ -43,14 +47,26 @@ impl fmt::Debug for Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy,PartialEq)]
 pub enum Kind {
     ValueError,
+    TypeError,
+
+    ParseIntError,
 }
 
 pub(crate) fn value_error(e: String) -> Error {
     Error::new(Kind::ValueError, Some(e))
 }
+
+pub(crate) fn type_error(e: String) -> Error {
+    Error::new(Kind::TypeError, Some(e))
+}
+
+pub(crate) fn any_error(kind: Kind, e: String) -> Error {
+    Error::new(kind, Some(e))
+}
+
 
 
 #[cfg(test)]

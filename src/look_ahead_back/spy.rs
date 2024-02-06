@@ -16,7 +16,7 @@ where
 
 
 mod tests {
-    use super::*;
+    use super::spy;
 
     #[test]
     fn test1() {
