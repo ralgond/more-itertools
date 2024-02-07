@@ -8,6 +8,8 @@ pub mod look_ahead_back;
 
 pub mod islice;
 
+pub mod chain;
+
 pub mod selecting;
 
 pub mod windowing;
