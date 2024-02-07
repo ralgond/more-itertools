@@ -30,5 +30,6 @@ mod tests {
     fn test1() {
         assert_eq!(Some(5), nth(vec![0,1,2,3,4,5], 5, Some(1)));
         assert_eq!(Some(0), nth(vec![0,1,2,3,4,5], 7, Some(0)));
+        assert_eq!(None, nth(vec![0,1,2,3,4,5], 7, None));
     }
 }
