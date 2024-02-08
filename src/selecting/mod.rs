@@ -10,3 +10,4 @@ pub mod map_except;
 pub mod nth;
 pub mod before_and_after;
 pub mod take;
+pub mod tail;
