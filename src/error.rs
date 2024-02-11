@@ -52,11 +52,17 @@ pub enum Kind {
     ValueError,
     TypeError,
 
+    OverflowError,
+
     ParseIntError,
 }
 
 pub(crate) fn value_error(e: String) -> Error {
     Error::new(Kind::ValueError, Some(e))
+}
+
+pub(crate) fn overflow_error(e: String) -> Error {
+    Error::new(Kind::OverflowError, Some(e))
 }
 
 // pub(crate) fn type_error(e: String) -> Error {
