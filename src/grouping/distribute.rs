@@ -136,4 +136,22 @@ mod tests {
         
         assert_eq!(None, cur_0.next());
     }
+
+    #[test]
+    fn test3() {
+        let v = vec![1,2,3];
+        let dist: Distribute<i32> = distribute(v, 5);
+
+        let mut cur_0 = dist.iter(0);
+        let mut cur_1 = dist.iter(1);
+        let mut cur_2 = dist.iter(2);
+        let mut cur_3 = dist.iter(3);
+        let mut cur_4 = dist.iter(4);
+
+        assert_eq!(1, cur_0.next().unwrap().ok().unwrap());
+        assert_eq!(2, cur_1.next().unwrap().ok().unwrap());
+        assert_eq!(3, cur_2.next().unwrap().ok().unwrap());
+        assert_eq!(None, cur_3.next());
+        assert_eq!(None, cur_4.next());
+    }
 }
