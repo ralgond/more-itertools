@@ -89,15 +89,19 @@ T: Clone + 'static
         return self.bucket_count;
     }
 
-    pub fn iter(&self) -> Cursor<T> {
-        let ret = Cursor {
-            cur: self.start,
-            start: self.start,
-            end: self.end,
-            step: self.bucket_count
-        };
+    pub fn iter(&self, bucket_no: usize) -> Cursor<T> {
+        assert!(bucket_no < self.bucket_count);
 
-        return ret;
+        unsafe {
+            let ret = Cursor {
+                cur: self.start.offset(bucket_no as isize),
+                start: self.start,
+                end: self.end,
+                step: self.bucket_count
+            };
+
+            return ret;
+        }
     }
 }
 
@@ -117,7 +121,7 @@ mod tests {
         let v = vec![1,2,3,4,5,6,7,8,9,10];
         let dist: Distribute<i32> = distribute(v, 3);
 
-        let mut cur_0 = dist.iter();
+        let mut cur_0 = dist.iter(0);
         assert_eq!(1, cur_0.next().unwrap().ok().unwrap());
         assert_eq!(4, cur_0.next().unwrap().ok().unwrap());
         assert_eq!(7, cur_0.next().unwrap().ok().unwrap());
@@ -130,9 +134,9 @@ mod tests {
         let v = vec![1,2,3,4,5,6,7,8,9,10];
         let dist: Distribute<i32> = distribute(v, 3);
 
-        let mut cur_0 = dist.iter();
-        let mut cur_1 = cur_0.offset(1);
-        let mut cur_2 = cur_1.offset(1);
+        let mut cur_0 = dist.iter(0);
+        let mut cur_1 = dist.iter(1);
+        let mut cur_2 = dist.iter(2);
         assert_eq!(1, cur_0.next().unwrap().ok().unwrap());
         assert_eq!(2, cur_1.next().unwrap().ok().unwrap());
         assert_eq!(3, cur_2.next().unwrap().ok().unwrap());
@@ -148,7 +152,9 @@ mod tests {
         assert_eq!(9, cur_2.next().unwrap().ok().unwrap());
 
         assert_eq!(10, cur_0.next().unwrap().ok().unwrap());
-        assert_eq!(None, cur_0.next());
+        assert_eq!(None, cur_1.next());
+        assert_eq!(None, cur_2.next());
         
+        assert_eq!(None, cur_0.next());
     }
 }
