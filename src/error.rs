@@ -33,6 +33,13 @@ impl Error {
     }
 }
 
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        return self.inner.kind == other.inner.kind && 
+                self.inner.message.eq(&other.inner.message);
+    }
+}
+
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut builder = f.debug_struct("more-itertools::Error");
