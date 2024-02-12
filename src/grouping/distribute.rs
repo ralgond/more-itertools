@@ -2,8 +2,8 @@ use crate::error;
 use crate::error::Error;
 
 pub struct Distribute<T> {
-    buf: Vec<T>,
-    bucket_count: usize,
+    pub(crate) buf: Vec<T>,
+    pub(crate) bucket_count: usize,
     start: *const T,
     end: *const T
 }
