@@ -11,28 +11,8 @@ pub struct Distribute<T> {
 pub struct Cursor<T>
 {
     cur: *const T,
-    start: *const T,
     end: *const T,
     step: usize
-}
-
-impl<T> Cursor<T>
-where
-T: Clone
-{
-    pub fn offset(&self, count: isize) -> Self {
-        let mut ret = Self { 
-            cur: self.cur.clone(), 
-            start: self.start.clone(), 
-            end: self.end.clone(), 
-            step: self.step.clone() };
-
-        unsafe {
-            ret.cur = ret.cur.offset(count);
-        }
-        
-        return ret;
-    }
 }
 
 impl<T> Iterator for Cursor<T>
@@ -95,7 +75,6 @@ T: Clone + 'static
         unsafe {
             let ret = Cursor {
                 cur: self.start.offset(bucket_no as isize),
-                start: self.start,
                 end: self.end,
                 step: self.bucket_count
             };
