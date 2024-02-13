@@ -1,9 +1,9 @@
 use crate::error;
 
-use super::distribute::{distribute, Distribute};
+use super::divide::{divide, Divide};
 
-struct ChunkedEven<T> {
-    dist: Distribute<T>,
+pub struct ChunkedEven<T> {
+    dist: Divide<T>,
     cur: usize
 }
 
@@ -12,7 +12,7 @@ where
 T: Clone + 'static
 {
     return ChunkedEven {
-        dist: distribute(buf, bucket_cnt),
+        dist: divide(buf, bucket_cnt),
         cur: 0
     };
 }
@@ -24,7 +24,7 @@ T: Clone + 'static
     type Item = Result<Vec<T>, error::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.cur < self.dist.bucket_count {
+        if self.cur < self.dist.n {
             let mut cursor = self.dist.iter(self.cur);
             self.cur += 1;
 
@@ -58,9 +58,9 @@ mod tests {
         let v = vec![1,2,3,4,5,6,7,8,9,10];
         let mut ce = chunked_even(v, 3);
 
-        assert_eq!(Some(Ok(vec![1, 4, 7, 10])), ce.next());
-        assert_eq!(Some(Ok(vec![2, 5, 8])), ce.next());
-        assert_eq!(Some(Ok(vec![3, 6, 9])), ce.next());
+        assert_eq!(Some(Ok(vec![1, 2, 3, 4])), ce.next());
+        assert_eq!(Some(Ok(vec![5, 6, 7])), ce.next());
+        assert_eq!(Some(Ok(vec![8, 9, 10])), ce.next());
         assert_eq!(None, ce.next());
         assert_eq!(None, ce.next());
         assert_eq!(None, ce.next());
