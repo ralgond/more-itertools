@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::error;
 use crate::error::Error;
 use crate::accumulate::accumulate;
@@ -5,12 +7,11 @@ use crate::utils::extract_value_from_result_vec;
 
 
 pub struct Divide<T> {
-    pub(crate) buf: Vec<T>,
+    pub(crate) buf: Rc::<Vec<T>>,
     pub(crate) n: usize,
     start: *const T,
     end: *const T,
     len_vec: Vec<usize>,
-    base: usize,
     accumulate_overflow: bool
 }
 
@@ -52,12 +53,11 @@ T: Clone + 'static
 
 
         let ret = Divide {
-            buf: buf,
+            buf: Rc::new(buf),
             n: bucket_count,
             start: start,
             end: end,
             len_vec: _len_vec2,
-            base: base,
             accumulate_overflow: accumulate_overflow
         };
 
@@ -74,6 +74,7 @@ T: Clone + 'static
         let end = self.len_vec[bucket_no+1];
         unsafe {
             let ret = Cursor {
+                buf: Rc::clone(&self.buf),
                 cur: self.start.offset(start as isize),
                 end: self.start.offset(end as isize),
                 bucket_count: self.n,
@@ -94,6 +95,7 @@ T: Clone + 'static
 
 pub struct Cursor<T>
 {
+    buf: Rc<Vec<T>>,
     cur: *const T,
     end: *const T,
     bucket_count: usize,
@@ -126,6 +128,18 @@ T: Clone
         }
     }
 }
+
+impl<T> Drop for Cursor<T> {
+    fn drop(&mut self) {
+        println!("Cursor, refcnt={}", Rc::strong_count(&self.buf));
+    }
+}
+impl<T> Drop for Divide<T> {
+    fn drop(&mut self) {
+        println!("Divide, refcnt={}", Rc::strong_count(&self.buf));
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

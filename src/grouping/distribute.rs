@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use crate::error;
 use crate::error::Error;
 
 pub struct Distribute<T> {
-    pub(crate) buf: Vec<T>,
+    pub(crate) buf: Rc<Vec<T>>,
     pub(crate) bucket_count: usize,
     start: *const T,
     end: *const T
@@ -10,6 +12,7 @@ pub struct Distribute<T> {
 
 pub struct Cursor<T>
 {
+    buf: Rc<Vec<T>>,
     cur: *const T,
     end: *const T,
     step: usize
@@ -55,7 +58,7 @@ T: Clone + 'static
             let end = start.offset(buf.len() as isize);
 
             let ret = Distribute {
-                buf: buf,
+                buf: Rc::new(buf),
                 bucket_count: bucket_count,
                 start: start,
                 end: end
@@ -74,6 +77,7 @@ T: Clone + 'static
 
         unsafe {
             let ret = Cursor {
+                buf: Rc::clone(&self.buf),
                 cur: self.start.offset(bucket_no as isize),
                 end: self.end,
                 step: self.bucket_count
