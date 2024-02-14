@@ -11,6 +11,18 @@ pub fn extract_value_from_result_vec<T>(vec: Vec<Result<T, Error>>) -> (Vec<T>, 
     return (ret_vec, false);
 }
 
+pub fn join_string_vec(v: &Vec<char>) -> String{
+    return v.iter().collect();
+}
+
+pub fn join_char_vec_second_level(l: &Vec<Vec<char>>) -> Vec<String> {
+    let mut ret = vec![];
+    for item in l {
+        ret.push(join_string_vec(item));
+    }
+    return ret;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -29,4 +41,9 @@ mod tests {
         assert_eq!(vec![4], a.0);
     }
 
+    #[test]
+    fn test2() {
+        let v = vec!['a', 'b', 'c'];
+        assert_eq!(join_string_vec(&v), "abc".to_string());
+    }
 }
