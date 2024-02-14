@@ -3,6 +3,7 @@ use std::rc::Rc;
 use crate::error;
 use crate::error::Error;
 
+#[allow(dead_code)]
 struct DistributeInner<T> {
     pub(crate) buf: Vec<T>,
     pub(crate) bucket_count: usize,
@@ -14,6 +15,7 @@ pub struct Distribute<T> {
     inner: Rc<DistributeInner<T>>
 }
 
+#[allow(dead_code)]
 pub struct Cursor<T>
 {
     dist_inner: Rc<DistributeInner<T>>,

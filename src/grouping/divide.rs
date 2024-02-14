@@ -6,7 +6,7 @@ use crate::accumulate::accumulate;
 use crate::utils::extract_value_from_result_vec;
 
 
-
+#[allow(dead_code)]
 pub struct DivideInner<T> {
     pub(crate) buf: Vec<T>,
     pub(crate) n: usize,

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash, rc::Rc};
 
-
+#[allow(dead_code)]
 pub struct BucketInner<T>
 where 
 T: Clone + PartialEq + Eq + Hash
@@ -15,6 +15,22 @@ where
 T: Clone + PartialEq + Eq + Hash {
     inner: Rc<BucketInner<T>>
 }
+
+pub struct Cursor<T> 
+where
+T: Clone + PartialEq + Eq + Hash
+{
+    inner: Rc<BucketInner<T>>
+}
+
+impl<T> Cursor<T> 
+where
+T: Clone + PartialEq + Eq + Hash {
+    pub fn get(&self, key: &Vec<T>) -> Option<&Vec<Vec<T>>> {
+        return self.inner.table.get(key);
+    }
+}
+
 
 impl<T> Bucket<T> 
 where 
@@ -49,8 +65,10 @@ T: Clone + PartialEq + Eq + Hash
         return ret;
     } 
 
-    pub fn get(&self, key: &Vec<T>) -> Option<&Vec<Vec<T>>> {
-        return self.inner.table.get(key);
+    pub fn get_cursor(&self) -> Cursor<T> {
+        Cursor {
+            inner: Rc::clone(&self.inner)
+        }
     }
 }
 
@@ -84,13 +102,16 @@ mod tests {
 
         println!("{:?}", join_char_vec_second_level(&b.keys()));
 
-        let m = b.get(&vec!['a']).unwrap();
+        let cursor = b.get_cursor();
+        let m = cursor.get(&vec!['a']).unwrap();
         assert_eq!(vec!["a1", "a2"], join_char_vec_second_level(m));
 
-        let m = b.get(&vec!['b']).unwrap();
+        let cursor = b.get_cursor();
+        let m = cursor.get(&vec!['b']).unwrap();
         assert_eq!(vec!["b1", "b2", "b3"], join_char_vec_second_level(m));
 
-        let m = b.get(&vec!['c']).unwrap();
+        let cursor = b.get_cursor();
+        let m = cursor.get(&vec!['c']).unwrap();
         assert_eq!(vec!["c1", "c2"], join_char_vec_second_level(m));
     }
 }
