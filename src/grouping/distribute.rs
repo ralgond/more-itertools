@@ -3,16 +3,20 @@ use std::rc::Rc;
 use crate::error;
 use crate::error::Error;
 
-pub struct Distribute<T> {
-    pub(crate) buf: Rc<Vec<T>>,
+struct DistributeInner<T> {
+    pub(crate) buf: Vec<T>,
     pub(crate) bucket_count: usize,
     start: *const T,
     end: *const T
 }
 
+pub struct Distribute<T> {
+    inner: Rc<DistributeInner<T>>
+}
+
 pub struct Cursor<T>
 {
-    buf: Rc<Vec<T>>,
+    dist_inner: Rc<DistributeInner<T>>,
     cur: *const T,
     end: *const T,
     step: usize
@@ -57,11 +61,15 @@ T: Clone + 'static
             let start = buf.as_ptr();
             let end = start.offset(buf.len() as isize);
 
-            let ret = Distribute {
-                buf: Rc::new(buf),
+            let inner = DistributeInner {
+                buf: buf,
                 bucket_count: bucket_count,
                 start: start,
                 end: end
+            };
+
+            let ret = Distribute {
+                inner: Rc::new(inner)
             };
 
             return ret;
@@ -69,18 +77,18 @@ T: Clone + 'static
     }
 
     pub fn iter_cnt(&self) -> usize {
-        return self.bucket_count;
+        return self.inner.bucket_count;
     }
 
     pub fn iter(&self, bucket_no: usize) -> Cursor<T> {
-        assert!(bucket_no < self.bucket_count);
+        assert!(bucket_no < self.inner.bucket_count);
 
         unsafe {
             let ret = Cursor {
-                buf: Rc::clone(&self.buf),
-                cur: self.start.offset(bucket_no as isize),
-                end: self.end,
-                step: self.bucket_count
+                dist_inner: Rc::clone(&self.inner),
+                cur: self.inner.start.offset(bucket_no as isize),
+                end: self.inner.end,
+                step: self.inner.bucket_count
             };
 
             return ret;

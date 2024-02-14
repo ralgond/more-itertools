@@ -24,7 +24,7 @@ T: Clone + 'static
     type Item = Result<Vec<T>, error::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.cur < self.dist.n {
+        if self.cur < self.dist.inner.n {
             let mut cursor = self.dist.iter(self.cur);
             self.cur += 1;
 

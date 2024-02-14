@@ -6,13 +6,18 @@ use crate::accumulate::accumulate;
 use crate::utils::extract_value_from_result_vec;
 
 
-pub struct Divide<T> {
-    pub(crate) buf: Rc::<Vec<T>>,
+
+pub struct DivideInner<T> {
+    pub(crate) buf: Vec<T>,
     pub(crate) n: usize,
     start: *const T,
     end: *const T,
     len_vec: Vec<usize>,
     accumulate_overflow: bool
+}
+
+pub struct Divide<T> {
+    pub(crate) inner: Rc<DivideInner<T>>
 }
 
 impl<T> Divide<T> 
@@ -52,8 +57,8 @@ T: Clone + 'static
         _len_vec2.append(&mut _len_vec3.0);
 
 
-        let ret = Divide {
-            buf: Rc::new(buf),
+        let inner = DivideInner {
+            buf: buf,
             n: bucket_count,
             start: start,
             end: end,
@@ -61,24 +66,28 @@ T: Clone + 'static
             accumulate_overflow: accumulate_overflow
         };
 
+        let ret = Divide {
+            inner: Rc::new(inner)
+        };
+
         return ret;
     }
 
     pub fn iter_cnt(&self) -> usize {
-        return self.n;
+        return self.inner.n;
     }
 
     pub fn iter(&self, bucket_no: usize) -> Cursor<T> {
-        assert!(bucket_no < self.len_vec.len() - 1);
-        let start = self.len_vec[bucket_no];
-        let end = self.len_vec[bucket_no+1];
+        assert!(bucket_no < self.inner.len_vec.len() - 1);
+        let start = self.inner.len_vec[bucket_no];
+        let end = self.inner.len_vec[bucket_no+1];
         unsafe {
             let ret = Cursor {
-                buf: Rc::clone(&self.buf),
-                cur: self.start.offset(start as isize),
-                end: self.start.offset(end as isize),
-                bucket_count: self.n,
-                accumulate_overflow: self.accumulate_overflow
+                inner: Rc::clone(&self.inner),
+                cur: self.inner.start.offset(start as isize),
+                end: self.inner.start.offset(end as isize),
+                bucket_count: self.inner.n,
+                accumulate_overflow: self.inner.accumulate_overflow
             };
 
             return ret;
@@ -95,7 +104,7 @@ T: Clone + 'static
 
 pub struct Cursor<T>
 {
-    buf: Rc<Vec<T>>,
+    inner: Rc<DivideInner<T>>,
     cur: *const T,
     end: *const T,
     bucket_count: usize,
@@ -131,12 +140,12 @@ T: Clone
 
 impl<T> Drop for Cursor<T> {
     fn drop(&mut self) {
-        println!("Cursor, refcnt={}", Rc::strong_count(&self.buf));
+        println!("Cursor, refcnt={}", Rc::strong_count(&self.inner));
     }
 }
 impl<T> Drop for Divide<T> {
     fn drop(&mut self) {
-        println!("Divide, refcnt={}", Rc::strong_count(&self.buf));
+        println!("Divide, refcnt={}", Rc::strong_count(&self.inner));
     }
 }
 
