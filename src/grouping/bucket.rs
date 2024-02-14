@@ -1,7 +1,7 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hash, rc::Rc};
 
 
-pub struct Bucket<T>
+pub struct BucketInner<T>
 where 
 T: Clone + PartialEq + Eq + Hash
 {
@@ -10,37 +10,47 @@ T: Clone + PartialEq + Eq + Hash
     table: HashMap<Vec<T>, Vec<Vec<T>>>
 }
 
+pub struct Bucket<T>
+where 
+T: Clone + PartialEq + Eq + Hash {
+    inner: Rc<BucketInner<T>>
+}
+
 impl<T> Bucket<T> 
 where 
 T: Clone + PartialEq + Eq + Hash
 {
     pub fn new(buf: Vec<Vec<T>>, key_func: fn(&Vec<T>)->Vec<T>) -> Self {
-        let mut ret = Bucket {
+        let mut inner = BucketInner {
             buf: buf,
             key_func: key_func,
             table: HashMap::new()
         };
 
-        for i in ret.buf.iter() {
+        for i in inner.buf.iter() {
             let _value = i;
             let _key = key_func(_value);
-            let v = ret.table.entry(_key).or_insert(vec![]);
+            let v = inner.table.entry(_key).or_insert(vec![]);
             v.push(_value.clone());
         }
+
+        let ret = Bucket {
+            inner: Rc::new(inner)
+        };
 
         return ret;
     }
 
     pub fn keys(&self) -> Vec<Vec<T>> {
         let mut ret = Vec::new();
-        for k in self.table.keys() {
+        for k in self.inner.table.keys() {
             ret.push(k.clone());
         }
         return ret;
     } 
 
     pub fn get(&self, key: &Vec<T>) -> Option<&Vec<Vec<T>>> {
-        return self.table.get(key);
+        return self.inner.table.get(key);
     }
 }
 
