@@ -17,3 +17,5 @@ pub mod selecting;
 pub mod windowing;
 
 pub mod utils;
+
+pub mod sequence;
