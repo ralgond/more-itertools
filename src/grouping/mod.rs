@@ -9,3 +9,5 @@ pub mod divide;
 pub mod sliced;
 
 pub mod bucket;
+
+pub mod partition;
