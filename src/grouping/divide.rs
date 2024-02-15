@@ -10,8 +10,6 @@ use crate::utils::extract_value_from_result_vec;
 pub struct DivideInner<T> {
     pub(crate) buf: Vec<T>,
     pub(crate) n: usize,
-    start: *const T,
-    end: *const T,
     len_vec: Vec<usize>,
     accumulate_overflow: bool
 }
@@ -25,13 +23,6 @@ where
 T: Clone + 'static
 {
     pub fn new(buf: Vec<T>, bucket_count: usize) -> Divide<T> {
-        let start;
-        let end;
-        unsafe  {
-            start = buf.as_ptr();
-            end = start.offset(buf.len() as isize);
-        }
-
         let mut _len_vec = Vec::new();
         let base = buf.len() / bucket_count;
         let _mod = buf.len() % bucket_count;
@@ -60,8 +51,6 @@ T: Clone + 'static
         let inner = DivideInner {
             buf: buf,
             n: bucket_count,
-            start: start,
-            end: end,
             len_vec: _len_vec2,
             accumulate_overflow: accumulate_overflow
         };
@@ -81,17 +70,16 @@ T: Clone + 'static
         assert!(bucket_no < self.inner.len_vec.len() - 1);
         let start = self.inner.len_vec[bucket_no];
         let end = self.inner.len_vec[bucket_no+1];
-        unsafe {
-            let ret = Cursor {
-                inner: Rc::clone(&self.inner),
-                cur: self.inner.start.offset(start as isize),
-                end: self.inner.start.offset(end as isize),
-                bucket_count: self.inner.n,
-                accumulate_overflow: self.inner.accumulate_overflow
-            };
 
-            return ret;
-        }
+        let ret = Cursor {
+            inner: Rc::clone(&self.inner),
+            cur: start,
+            end: end,
+            bucket_count: self.inner.n,
+            accumulate_overflow: self.inner.accumulate_overflow
+        };
+
+        return ret;
     }
 }
 
@@ -105,8 +93,8 @@ T: Clone + 'static
 pub struct Cursor<T>
 {
     inner: Rc<DivideInner<T>>,
-    cur: *const T,
-    end: *const T,
+    cur: usize,
+    end: usize,
     bucket_count: usize,
     accumulate_overflow: bool
 }
@@ -130,11 +118,11 @@ T: Clone
             return None;
         }
 
-        let pointer = self.cur;
-        unsafe {
-            self.cur = self.cur.offset(1 as isize);
-            return Some(Ok((*pointer).clone()));
-        }
+        let real_ret: Option<Result<_, _>> = Some(Ok(self.inner.buf.get(self.cur).unwrap().clone()));
+
+        self.cur += 1;
+
+        return real_ret;
     }
 }
 
