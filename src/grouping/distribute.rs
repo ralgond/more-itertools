@@ -49,7 +49,7 @@ T: Clone
 
 impl<T> Distribute<T> 
 where
-T: Clone + 'static
+T: Clone
 {
     pub fn new(buf: Box<dyn Sequence<T>>, bucket_count: usize) -> Self {
         let inner = DistributeInner {
@@ -83,7 +83,7 @@ T: Clone + 'static
 
 pub fn distribute<T>(buf: Box<dyn Sequence<T>>, bucket_cnt: usize) -> Distribute<T> 
 where
-T: Clone + 'static
+T: Clone
 {
     return Distribute::new(buf, bucket_cnt);
 }
