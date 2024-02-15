@@ -11,3 +11,5 @@ pub mod sliced;
 pub mod bucket;
 
 pub mod partition;
+
+pub mod grouper;
