@@ -53,7 +53,7 @@ T: Clone
         if ret.len() < self.n {
             match self.incomplete {
                 IncompleteType::Fill => {
-                    for i in 0..(self.n - ret.len()) {
+                    for _ in 0..(self.n - ret.len()) {
                         ret.push(self.fillvalue.as_ref().unwrap().clone());
                     }
                     return Some(Ok(ret));
