@@ -20,7 +20,7 @@ pub struct Divide<T> {
 
 impl<T> Divide<T> 
 where
-T: Clone + 'static
+T: Clone
 {
     pub fn new(buf: Vec<T>, bucket_count: usize) -> Divide<T> {
         let mut _len_vec = Vec::new();
@@ -85,7 +85,7 @@ T: Clone + 'static
 
 pub fn divide<T>(buf: Vec<T>, bucket_cnt: usize) -> Divide<T>
 where
-T: Clone + 'static
+T: Clone
 {
     return Divide::new(buf, bucket_cnt);
 }
