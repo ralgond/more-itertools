@@ -15,3 +15,5 @@ pub mod partition;
 pub mod grouper;
 
 pub mod unzip;
+
+pub mod split_at;
