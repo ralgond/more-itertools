@@ -13,3 +13,5 @@ pub mod bucket;
 pub mod partition;
 
 pub mod grouper;
+
+pub mod unzip;
