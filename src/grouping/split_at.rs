@@ -1,16 +1,22 @@
 use std::{collections::VecDeque, fmt::Debug};
 
+
+#[derive(Debug, Clone)]
+struct SplitAtOutputItem<I: Iterator> {
+    is_sep: bool,
+    items: Vec<I::Item>
+}
+
 #[derive(Debug, Clone)]
 pub struct SplitAt<I: Iterator> {
-    ret_buf: VecDeque<Vec<I::Item>>,
+    ret_buf: VecDeque<SplitAtOutputItem<I>>,
     buf: Vec<I::Item>,
     iter: I,
     pred: fn(&I::Item) -> bool,
     maxsplit: i64,
     keep_separator: bool,
     splited: i64,
-    iter_finished: bool,
-    found_sep: bool
+    iter_finished: bool
 }
 
 
@@ -25,12 +31,18 @@ where I::Item: Debug
             None => { self.iter_finished = true },
             Some(v) => {
                 if (self.pred)(&v) {
-                    let mut empty_vec = Vec::new();
-                    std::mem::swap(&mut empty_vec, &mut self.buf);
+                    let mut empty_vec = SplitAtOutputItem {
+                        is_sep: false,
+                        items: Vec::new()
+                    };
+                    std::mem::swap(&mut empty_vec.items, &mut self.buf);
                     self.ret_buf.push_back(empty_vec);
 
-                    let mut sep_vec = Vec::new();
-                    sep_vec.push(v);
+                    let mut sep_vec = SplitAtOutputItem {
+                        is_sep: true,
+                        items: Vec::new()
+                    };
+                    sep_vec.items.push(v);
                     self.ret_buf.push_back(sep_vec);
                 }
             }
@@ -38,8 +50,11 @@ where I::Item: Debug
 
         if self.iter_finished && self.ret_buf.len() > 0 {
             let last_buf = self.ret_buf.back().unwrap();
-            if last_buf.len() == 1 && (self.pred)(last_buf.get(0).unwrap()) {
-                self.ret_buf.push_back(Vec::new());
+            if last_buf.items.len() == 1 && last_buf.is_sep {
+                self.ret_buf.push_back(SplitAtOutputItem {
+                    is_sep: false,
+                    items: Vec::new()
+                });
             }
         }
 
@@ -55,12 +70,12 @@ where I::Item: Debug
                 },
                 Some(v) => {
                     if self.keep_separator {
-                        return Some(v);
+                        return Some(v.items);
                     } else {
-                        if v.len() == 1 && (self.pred)(v.get(0).unwrap()) {
+                        if v.items.len() == 1 && v.is_sep {
                             continue;
                         } else {
-                            return Some(v);
+                            return Some(v.items);
                         }
                     }    
                 }
@@ -81,8 +96,7 @@ where
         maxsplit: maxsplit,
         keep_separator: keep_separator,
         splited: 0,
-        iter_finished: false,
-        found_sep: false
+        iter_finished: false
     };
 
     return ret;
