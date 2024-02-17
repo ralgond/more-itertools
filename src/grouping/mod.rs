@@ -19,3 +19,5 @@ pub mod unzip;
 pub mod split_at;
 
 pub mod split_when;
+
+pub mod split_into;
