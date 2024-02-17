@@ -199,5 +199,15 @@ mod tests {
         let sa = split_at(v.into_iter(), |x| { *x == 'a' }, 2, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b', 'a', 'b', 'c']], ret);
+
+        let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
+        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, 10, false);
+        let ret = sa.collect::<Vec<_>>();
+        assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b'], vec!['b', 'c']], ret);
+
+        let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c', 'a'];
+        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, 10, false);
+        let ret = sa.collect::<Vec<_>>();
+        assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b'], vec!['b', 'c'], vec![]], ret);
     }
 }
