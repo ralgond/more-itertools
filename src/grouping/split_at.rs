@@ -1,10 +1,9 @@
-use std::{collections::{LinkedList, VecDeque}, fmt::Debug};
-
+use std::fmt::Debug;
+use std::collections::LinkedList;
 
 #[derive(Debug, Clone)]
 struct SplitAtOutputItem<I: Iterator> {
     is_sep: bool,
-    is_end: bool,
     items: Vec<I::Item>
 }
 
@@ -65,13 +64,11 @@ where I::Item: Debug
                         if (self.pred)(&v) {
                             self.ret_buf.push_back(SplitAtOutputItem{
                                 is_sep: true,
-                                is_end: false,
                                 items: vec![v]
                             });
 
                             self.ret_buf.push_back(SplitAtOutputItem{
                                 is_sep: false,
-                                is_end: false,
                                 items: vec![]
                             });
 
@@ -83,13 +80,11 @@ where I::Item: Debug
                         if self.splited < self.maxsplit && (self.pred)(&v) {
                             self.ret_buf.push_back(SplitAtOutputItem{
                                 is_sep: true,
-                                is_end: false,
                                 items: vec![v]
                             });
 
                             self.ret_buf.push_back(SplitAtOutputItem{
                                 is_sep: false,
-                                is_end: false,
                                 items: vec![]
                             });
 
@@ -140,7 +135,6 @@ where
 
     ret.ret_buf.push_back(SplitAtOutputItem {
         is_sep: false,
-        is_end: false,
         items: Vec::new()
     });
 
