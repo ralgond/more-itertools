@@ -19,3 +19,5 @@ pub mod windowing;
 pub mod utils;
 
 pub mod sequence;
+
+pub mod others;
