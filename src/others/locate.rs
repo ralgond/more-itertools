@@ -40,13 +40,12 @@ T: Clone + PartialEq
 pub fn locate<T>(
                     array: Vec<T>,
                     query: Vec<T>,
-                    offset: usize,
                     window_size: usize) -> Locate<T>
 {
     Locate {
         array: array,
         query: query,
-        offset: offset,
+        offset: 0,
         window_size: window_size
     }
 }
@@ -58,14 +57,14 @@ mod tests {
 
     #[test]
     fn test1() {
-        let mut l = locate(vec![1,1,1,1,1], vec![1,1,1], 0, 3);
+        let mut l = locate(vec![1,1,1,1,1], vec![1,1,1], 3);
         assert_eq!(Some(0), l.next());
         assert_eq!(Some(1), l.next());
         assert_eq!(Some(2), l.next());
         assert_eq!(None, l.next());
         assert_eq!(None, l.next());
 
-        let mut l = locate(vec![1,1,1,1,1], vec![1], 0, 1);
+        let mut l = locate(vec![1,1,1,1,1], vec![1], 1);
         assert_eq!(Some(0), l.next());
         assert_eq!(Some(1), l.next());
         assert_eq!(Some(2), l.next());
