@@ -1,24 +1,34 @@
-name: Coverage
 on:
   push:
-    branches:
-      - "*"
-env:
-  RUST_BACKTRACE: 1
+    branches: [master]
+    paths-ignore: 
+      - "**.md" 
+  pull_request:
+    paths-ignore: 
+      - "**.md" 
+
+name: Code Coverage
+
 jobs:
   coverage:
+    name: coverage
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        version:
-          - nightly
-        target:
-          - x86_64-unknown-linux-gnu
-      fail-fast: false
     steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
+      - name: checkout source
+        uses: actions/checkout@v4
+
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: ${{ matrix.version }}
-      - name: coverage
-        run: cargo run --release -- tarpaulin --engine llvm --follow-exec --post-test-delay 10 --coveralls ${{ secrets.COVERALLS_TOKEN }} 
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run llvm-cov
+        run: cargo llvm-cov --all-features --doctests --workspace --lcov --output-path lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
