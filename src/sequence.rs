@@ -1,7 +1,12 @@
 
-pub trait Sequence<T> {
+pub trait Sequence<T> 
+where T: PartialEq
+{
     fn get<'a>(&'a self, index: usize) -> Option<&'a T>;
     fn len(&self) -> usize;
+    fn equals(&self, other: &dyn Sequence<T>) -> bool;
+    fn slice(&self, begin: usize, end: usize) -> &[T];
+    fn as_slice(&self) -> &[T];
 }
 
 pub struct SequenceVector<T> {
@@ -16,7 +21,9 @@ impl<T> SequenceVector<T> {
     }
 }
 
-impl<T> Sequence<T> for SequenceVector<T> {
+impl<T> Sequence<T> for SequenceVector<T> 
+where T: PartialEq
+{
     fn get<'a>(&'a self, index: usize) -> Option<&'a T> {
         return self.v.get(index);
     }
@@ -24,9 +31,23 @@ impl<T> Sequence<T> for SequenceVector<T> {
     fn len(&self) -> usize {
         return self.v.len();
     }
+
+    fn slice(&self, begin: usize, end: usize) -> &[T] {
+        return &self.v[begin..end];
+    }
+
+    fn equals(&self, other: &dyn Sequence<T>) -> bool {
+        return self.v.len() == other.len() && self.v.starts_with(other.as_slice());
+    }
+
+    fn as_slice(&self) -> &[T] {
+        return self.v.as_slice();
+    }
 }
 
-pub fn create_seq_from_vec<T>(v: Vec<T>) -> impl Sequence<T> {
+pub fn create_seq_from_vec<T>(v: Vec<T>) -> impl Sequence<T> 
+where T: PartialEq
+{
     return SequenceVector::new(v);
 }
 

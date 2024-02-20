@@ -24,7 +24,7 @@ pub struct Cursor<T>
 
 impl<T> Iterator for Cursor<T>
 where
-T: Clone
+T: Clone + PartialEq
 {
     type Item = Result<T, Error>;
 
