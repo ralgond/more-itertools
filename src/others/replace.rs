@@ -169,6 +169,5 @@ mod tests {
         assert_eq!(Some(Ok(4)), r.next());
         assert_eq!(Some(Ok(5)), r.next());
         assert_eq!(None, r.next());
-        
     }
 }
