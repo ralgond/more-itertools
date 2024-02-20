@@ -33,5 +33,3 @@ jobs:
         env:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: ralgond/more-itertools
-        with:
-          files: lcov.info
