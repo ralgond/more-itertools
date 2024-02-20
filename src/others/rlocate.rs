@@ -11,7 +11,7 @@ pub struct Rlocate<T> {
 
 impl<T> Iterator for Rlocate<T> 
 where 
-T: Clone + PartialEq
+T: PartialEq
 {
     type Item = Result<usize, Error>;
 

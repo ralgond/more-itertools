@@ -10,7 +10,7 @@ pub struct Locate<T> {
 
 impl<T> Iterator for Locate<T> 
 where 
-T: Clone + PartialEq
+T: PartialEq
 {
     type Item = Result<usize, Error>;
 
