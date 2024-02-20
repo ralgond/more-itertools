@@ -1,9 +1,9 @@
 use crate::error::Error;
 use crate::error;
+use crate::sequence::Sequence;
 
-#[derive(Debug,Clone)]
 pub struct Locate<T> {
-    array: Vec<T>,
+    array: Box<dyn Sequence<T>>,
     query: Vec<T>,
     offset: usize
 }
@@ -27,7 +27,7 @@ T: PartialEq
                 return None;
             }
     
-            let slice = &self.array[self.offset..self.offset+self.query.len()];
+            let slice = &self.array.slice(self.offset, self.offset+self.query.len());
 
             if slice.len() == self.query.len() && self.query.starts_with(slice) {
                 let ret_offset = self.offset;
@@ -43,7 +43,7 @@ T: PartialEq
 }
 
 pub fn locate<T>(
-                    array: Vec<T>,
+                    array: Box<dyn Sequence<T>>,
                     query: Vec<T>) -> Locate<T>
 {
     Locate {
@@ -56,18 +56,20 @@ pub fn locate<T>(
 
 #[cfg(test)]
 mod tests {
+    use crate::sequence::create_seq_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
-        let mut l = locate(vec![1,1,1,1,1], vec![1,1,1]);
+        let mut l = locate(Box::new(create_seq_from_vec(vec![1,1,1,1,1])), vec![1,1,1]);
         assert_eq!(Some(Ok(0)), l.next());
         assert_eq!(Some(Ok(1)), l.next());
         assert_eq!(Some(Ok(2)), l.next());
         assert_eq!(None, l.next());
         assert_eq!(None, l.next());
 
-        let mut l = locate(vec![1,1,1,1,1], vec![1]);
+        let mut l = locate(Box::new(create_seq_from_vec(vec![1,1,1,1,1])), vec![1]);
         assert_eq!(Some(Ok(0)), l.next());
         assert_eq!(Some(Ok(1)), l.next());
         assert_eq!(Some(Ok(2)), l.next());
@@ -76,7 +78,7 @@ mod tests {
         assert_eq!(None, l.next());
 
 
-        let mut l = locate(vec![0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3], vec![1,2,3]);
+        let mut l = locate(Box::new(create_seq_from_vec(vec![0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3])), vec![1,2,3]);
         assert_eq!(Some(Ok(1)), l.next());
         assert_eq!(Some(Ok(5)), l.next());
         assert_eq!(Some(Ok(9)), l.next());

@@ -1,10 +1,12 @@
 
+
 pub trait Sequence<T> 
 where T: PartialEq
 {
     fn get<'a>(&'a self, index: usize) -> Option<&'a T>;
     fn len(&self) -> usize;
     fn equals(&self, other: &dyn Sequence<T>) -> bool;
+    fn equals2(&self, other: &[T]) -> bool;
     fn slice(&self, begin: usize, end: usize) -> &[T];
     fn as_slice(&self) -> &[T];
 }
@@ -42,6 +44,10 @@ where T: PartialEq
 
     fn as_slice(&self) -> &[T] {
         return self.v.as_slice();
+    }
+
+    fn equals2(&self, other: &[T]) -> bool {
+        return self.v.len() == other.len() && self.v.starts_with(other);
     }
 }
 
