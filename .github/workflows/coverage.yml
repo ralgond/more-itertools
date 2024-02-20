@@ -33,4 +33,5 @@ jobs:
         env:
           token: ${{ secrets.CODECOV_TOKEN }}
         with:
+          verbose: true
           files: lcov.info
