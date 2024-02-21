@@ -73,101 +73,37 @@ mod tests {
     #[test]
     fn test1_no_strict() {
         let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 3, false);
-        // println!("{:?}", it.next());
-        // println!("{:?}", it.next());
-        // println!("{:?}", it.next());
-        // println!("{:?}", it.next());
-        // println!("{:?}", it.next());
 
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![1,2,3]); },
-            Err(_) => {}
-        }
-
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![4,5,6]); },
-            Err(_) => {}
-        }
-
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![7,8,9]); },
-            Err(_) => {}
-        }
-
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![10]); },
-            Err(_) => {}
-        }
-
-        match it.next() {
-            Some(_) => { assert!(false) }
-            None => { assert!(true) }
-        }
-
-        match it.next() {
-            Some(_) => { assert!(false) }
-            None => { assert!(true) }
-        }
+        assert_eq!(vec![1,2,3], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec![4,5,6], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec![7,8,9], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec![10], it.next().unwrap().ok().unwrap());
+        assert_eq!(None, it.next());
+        assert_eq!(None, it.next());
     }
 
     #[test]
     fn test2_strict() {
         let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 3, true);
 
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![1,2,3]); },
-            Err(_) => {}
-        }
+        assert_eq!(vec![1,2,3], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec![4,5,6], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec![7,8,9], it.next().unwrap().ok().unwrap());
 
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![4,5,6]); },
-            Err(_) => {}
-        }
-
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![7,8,9]); },
-            Err(_) => {}
-        }
-
-        match it.next().unwrap() {
-            Ok(_) => { assert!(false) },
-            Err(_) => { assert!(true)}
-        }
+        assert_eq!(error::Kind::ValueError, it.next().unwrap().err().unwrap().kind());
     }
 
     #[test]
     fn test3_no_strict_chars() {
         let mut it = chunked("abcdefghij".chars(), 3, false);
 
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec!['a','b','c']); },
-            Err(_) => {}
-        }
+        assert_eq!(vec!['a', 'b', 'c'], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec!['d', 'e', 'f'], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec!['g', 'h', 'i'], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec!['j'], it.next().unwrap().ok().unwrap());
 
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec!['d', 'e', 'f']); },
-            Err(_) => {}
-        }
-
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec!['g', 'h', 'i']); },
-            Err(_) => {}
-        }
-
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec!['j']); },
-            Err(_) => {}
-        }
-
-        match it.next() {
-            Some(_) => { assert!(false) }
-            None => { assert!(true) }
-        }
-
-        match it.next() {
-            Some(_) => { assert!(false) }
-            None => { assert!(true) }
-        }
+        assert_eq!(None, it.next());
+        assert_eq!(None, it.next());
     }
 
     #[test]
@@ -180,25 +116,17 @@ mod tests {
 
         let mut it = chunked(v, 3, false);
 
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![String::from("1"), String::from("2") ,String::from("3")]); },
-            Err(_) => {}
-        }
+        assert_eq!(vec![String::from("1"), String::from("2") ,String::from("3")], it.next().unwrap().ok().unwrap());
+        assert_eq!(vec![String::from("4")], it.next().unwrap().ok().unwrap());
 
-        match it.next().unwrap() {
-            Ok(value) => { assert_eq!(value, vec![String::from("4")]); },
-            Err(_) => {}
-        }
+        assert_eq!(None, it.next());
+        assert_eq!(None, it.next());
+    }
 
-        match it.next() {
-            Some(_) => { assert!(false) }
-            None => { assert!(true) }
-        }
-
-        match it.next() {
-            Some(_) => { assert!(false) }
-            None => { assert!(true) }
-        }
+    #[test]
+    fn test4_value_error_n_is_0() {
+        let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 0, false);
+        assert_eq!(error::Kind::ValueError, it.next().unwrap().err().unwrap().kind());
     }
 }
 
