@@ -1,5 +1,4 @@
 use std::collections::{LinkedList, VecDeque};
-use crate::error;
 use crate::error::Error;
 
 struct ReplaceOutputItem<T> {

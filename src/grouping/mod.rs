@@ -21,3 +21,5 @@ pub mod split_at;
 pub mod split_when;
 
 pub mod split_into;
+
+pub mod split_before;
