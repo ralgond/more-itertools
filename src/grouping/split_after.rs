@@ -20,7 +20,11 @@ impl<I: Iterator> Iterator for SplitAfter<I> {
     type Item = Result<Vec<<I as Iterator>::Item>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.maxsplit == 0 {
+        if self.maxsplit == 0i128 {
+            if self.iter_finished {
+                return None;
+            }
+
             if self.output_item_list.len() == 0 {
                 self.output_item_list.push_back(SplitAfterItem{
                     items: Vec::new(),
@@ -30,7 +34,10 @@ impl<I: Iterator> Iterator for SplitAfter<I> {
             loop {
                 let _next = self.iter.next();
                 match _next {
-                    None => { return Some(Ok(self.output_item_list.pop_front().unwrap().items)); }
+                    None => { 
+                        self.iter_finished = true;
+                        return Some(Ok(self.output_item_list.pop_front().unwrap().items)); 
+                    }
                     Some(v) => { self.output_item_list.back_mut().unwrap().items.push(v) }
                 }
             }
@@ -159,5 +166,6 @@ mod tests {
         let v = vec![0,1,2,3,4,5,6,7,8,9];
         let mut r = splite_after(v, |x|{x%3==0}, 0);
         assert_eq!(Some(Ok(vec![0,1,2,3,4,5,6,7,8,9])), r.next());
+        assert_eq!(None, r.next());
     }
 }
