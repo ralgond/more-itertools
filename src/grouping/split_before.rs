@@ -163,5 +163,11 @@ mod tests {
         assert_eq!(Some(Ok(vec![1,1,1])), r.next());
         assert_eq!(None, r.next());
         assert_eq!(None, r.next());
+
+        let v = vec![1,1,1];
+        let mut r = splite_before(v, |x|{x%3==0}, 2);
+        assert_eq!(Some(Ok(vec![1,1,1])), r.next());
+        assert_eq!(None, r.next());
+        assert_eq!(None, r.next());
     }
 }
