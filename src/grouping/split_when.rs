@@ -12,8 +12,8 @@ pub struct SplitWhen<I: Iterator> {
     ret_buf: LinkedList<SplitWhenOutputItem<I>>,
     iter: I,
     pred: fn(& I::Item, & I::Item) -> bool,
-    maxsplit: i64,
-    splited: i64,
+    maxsplit: i128,
+    splited: usize,
     iter_finished: bool
 }
 
@@ -67,7 +67,7 @@ where I::Item: Debug
                                     self.ret_buf.back_mut().unwrap().items.push(v);
                                 }
                             } else {
-                                if self.splited < self.maxsplit && (self.pred)(& v, & items.get(items.len()-1).unwrap()) {
+                                if (self.splited as i128) < self.maxsplit && (self.pred)(& v, & items.get(items.len()-1).unwrap()) {
                                     self.ret_buf.push_back(SplitWhenOutputItem{
                                         items: Vec::new()
                                     });
@@ -106,7 +106,7 @@ where I::Item: Debug
     }
 }
 
-pub fn split_when<I>(iter: I, pred: fn(&I::Item, &I::Item)->bool, maxsplit: i64) -> SplitWhen<I>
+pub fn split_when<I>(iter: I, pred: fn(&I::Item, &I::Item)->bool, maxsplit: i128) -> SplitWhen<I>
 where
     I: Iterator,
 {
@@ -147,5 +147,20 @@ mod tests {
         let sw = split_when(v.into_iter(), |x, y| { y > x }, 10);
         let ret = sw.collect::<Vec<_>>();
         assert_eq!(vec![vec![1, 2, 3, 3], vec![2, 5], vec![2, 4], vec![2]], ret);
+
+        let v = vec![1, 2, 3, 3, 2, 5, 2, 4, 2];
+        let sw = split_when(v.into_iter(), |x, y| { y > x }, 0);
+        let ret = sw.collect::<Vec<_>>();
+        assert_eq!(vec![vec![1, 2, 3, 3, 2, 5, 2, 4, 2]], ret);
+
+        let v = vec![1,2];
+        let sw = split_when(v.into_iter(), |x, y| { y > x }, -1);
+        let ret = sw.collect::<Vec<_>>();
+        assert_eq!(vec![vec![1,2]], ret);
+
+        let v = vec![2,1];
+        let sw = split_when(v.into_iter(), |x, y| { y > x }, -1);
+        let ret = sw.collect::<Vec<_>>();
+        assert_eq!(vec![vec![2], vec![1]], ret);
     }
 }
