@@ -1,4 +1,4 @@
-use std::collections::{LinkedList, VecDeque};
+use std::collections::VecDeque;
 use std::fmt::Debug;
 
 use crate::error;
