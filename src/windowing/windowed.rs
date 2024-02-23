@@ -103,53 +103,30 @@ mod tests {
         let v = vec![1,2,3,4,5];
         let mut w = windowed(v, 3, 1);
 
-        match w.next().unwrap() {
-            Ok(v) => { assert_eq!(vec![1,2,3], v); }
-            Err(_) => { assert!(false); }
-        }
-        match w.next().unwrap() {
-            Ok(v) => { assert_eq!(vec![2,3,4], v); }
-            Err(_) => { assert!(false); }
-        }
-        match w.next().unwrap() {
-            Ok(v) => { assert_eq!(vec![3,4,5], v); }
-            Err(_) => { assert!(false); }
-        }
-        match w.next() {
-            Some(_) => { assert!(false); }
-            None => { assert!(true); }
-        }
+        assert_eq!(vec![1,2,3], w.next().unwrap().ok().unwrap());
+        assert_eq!(vec![2,3,4], w.next().unwrap().ok().unwrap());
+        assert_eq!(vec![3,4,5], w.next().unwrap().ok().unwrap());
+        assert_eq!(None, w.next());
     }
 
     #[test]
     fn test2() {
         let v = vec![1,2,3,4,5,6,7,8];
         let mut w = windowed(v, 3, 2);
-        match w.next().unwrap() {
-            Ok(v) => { assert_eq!(vec![1,2,3], v); }
-            Err(_) => { assert!(false); }
-        }
-        match w.next().unwrap() {
-            Ok(v) => { assert_eq!(vec![3,4,5], v); }
-            Err(_) => { assert!(false); }
-        }
-        match w.next().unwrap() {
-            Ok(v) => { assert_eq!(vec![5,6,7], v); }
-            Err(_) => { assert!(false); }
-        }
-        match w.next() {
-            Some(_) => { assert!(false); }
-            None => { assert!(true); }
-        }
+        assert_eq!(vec![1,2,3], w.next().unwrap().ok().unwrap());
+        assert_eq!(vec![3,4,5], w.next().unwrap().ok().unwrap());
+        assert_eq!(vec![5,6,7], w.next().unwrap().ok().unwrap());
+        assert_eq!(None, w.next());
     }
 
     #[test]
     fn test3() {
         let v = vec![1,2];
         let mut w = windowed(v, 3, 1);
-        match w.next() {
-            Some(_) => { assert!(false); }
-            None => { assert!(true); }
-        }
+        assert_eq!(None, w.next());
+
+        let v = vec![1,2];
+        let mut w = windowed(v, 0, 1);
+        assert_eq!(error::Kind::ValueError, w.next().unwrap().err().unwrap().kind());
     }
 }
