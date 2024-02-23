@@ -9,11 +9,7 @@ pub mod grouping;
 
 pub mod look_ahead_back;
 
-pub mod islice;
 
-pub mod chain;
-
-pub mod accumulate;
 
 pub mod selecting;
 
@@ -24,3 +20,5 @@ pub mod utils;
 pub mod sequence;
 
 pub mod others;
+
+pub mod itertools;

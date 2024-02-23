@@ -58,7 +58,7 @@ I::Item: Clone
 #[cfg(test)]
 mod tests {
 
-    use crate::{islice::islice, utils::extract_value_from_result_vec};
+    use crate::{itertools::islice::islice, utils::extract_value_from_result_vec};
 
     use super::*;
 

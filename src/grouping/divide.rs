@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::error;
 use crate::error::Error;
-use crate::accumulate::accumulate;
+use crate::itertools::accumulate::accumulate;
 use crate::utils::extract_value_from_result_vec;
 
 

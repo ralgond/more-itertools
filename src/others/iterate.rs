@@ -48,7 +48,7 @@ pub fn iterate<T>(func: fn(&T) -> T, start: T) -> Iterate<T>
 
 #[cfg(test)]
 mod tests {
-    use crate::{islice::islice, utils::extract_value_from_result_vec};
+    use crate::{itertools::islice::islice, utils::extract_value_from_result_vec};
 
     use super::*;
 

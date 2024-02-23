@@ -1,4 +1,4 @@
-use crate::islice::islice;
+use crate::itertools::islice::islice;
 
 pub fn nth<I>(iterable: I, n: usize, default: Option<I::Item>) -> Option<I::Item>
 where
