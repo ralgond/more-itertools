@@ -5,3 +5,5 @@ pub mod intersperse;
 pub mod padded;
 
 pub mod mark_ends;
+
+pub mod repeat_each;
