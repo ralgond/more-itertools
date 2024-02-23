@@ -101,9 +101,9 @@ mod tests {
         let me = mark_ends(v);
         assert_eq!(vec![(true, true, 1)], me.collect::<Vec<_>>());
 
-        // let v = Vec::<(bool, bool, i32)>::new();
-        // let me = mark_ends(v);
+        let v = Vec::<(bool, bool, i32)>::new();
+        let me = mark_ends(v);
         // println!("{:?}", me.collect::<Vec<_>>());
-        // assert_eq!(Vec::<(bool,bool,i32)>::new(), me.collect::<Vec<_>>());
+        assert_eq!(0, me.collect::<Vec<_>>().len());
     }
 }
