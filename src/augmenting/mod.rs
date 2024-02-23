@@ -7,3 +7,5 @@ pub mod padded;
 pub mod mark_ends;
 
 pub mod repeat_each;
+
+pub mod repeat_last;
