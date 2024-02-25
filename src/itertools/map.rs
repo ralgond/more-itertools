@@ -1,17 +1,17 @@
-pub struct Map<I>
+pub struct Map<I, J>
 where
 I: Iterator
 {
     iter: I,
-    pred: fn(&I::Item) -> bool,
+    pred: fn(&I::Item) -> J,
     iter_finished: bool,
 }
 
-impl<I> Iterator for Map<I> 
+impl<I,J> Iterator for Map<I,J> 
 where 
     I: Iterator
 {
-    type Item = bool;
+    type Item = J;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.iter_finished {
@@ -25,17 +25,13 @@ where
                 return None;
             },
             Some(v) => {
-                if (self.pred)(&v) {
-                    return Some(true);
-                } else {
-                    return Some(false);
-                }
+                return Some((self.pred)(&v));
             }
         }
     }
 }
 
-pub fn map<I>(i: I, pred: fn(&I::Item)->bool) -> Map<I::IntoIter>
+pub fn map<I,J>(i: I, pred: fn(&I::Item)->J) -> Map<I::IntoIter, J>
 where
     I: IntoIterator
 {

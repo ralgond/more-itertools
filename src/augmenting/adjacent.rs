@@ -1,9 +1,11 @@
 use std::iter::Zip;
 
 use crate::itertools::tee::TeeCursor;
-use crate::itertools::{chain::chain3, tee::tee, map::map};
+use crate::itertools::{tee::tee, map::map};
 use crate::windowing::windowed::windowed;
 use crate::utils::any_result;
+
+use crate::itertools::chain::chain; 
 
 fn false_padding(n: usize) -> Vec<bool> { 
     let mut padding = Vec::<bool>::new();
@@ -22,7 +24,7 @@ where
     let left_padding = false_padding(distance);
     let right_padding = false_padding(distance);
 
-    let selected = chain3(left_padding, map(i1, pred).collect::<Vec<_>>(), right_padding);
+    let selected = chain!(left_padding, map(i1, pred), right_padding);
     
 
     let adjacent_to_selected = map(windowed(selected, 2 * distance + 1, 1), any_result).collect::<Vec<_>>();
