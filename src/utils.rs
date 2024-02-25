@@ -23,6 +23,23 @@ pub fn join_char_vec_second_level(l: &Vec<Vec<char>>) -> Vec<String> {
     return ret;
 }
 
+pub fn any(v: &Vec<bool>) -> bool {
+    for i in v.iter() {
+        if *i {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+pub fn any_result(v: &Result<Vec<bool>, Error>) -> bool {
+    if v.is_err() {
+        return false;
+    }
+    return any(&(v.as_ref().ok().unwrap()));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -45,5 +62,18 @@ mod tests {
     fn test2() {
         let v = vec!['a', 'b', 'c'];
         assert_eq!(join_string_vec(&v), "abc".to_string());
+    }
+
+    #[test]
+    fn test_any() {
+        let v = vec![true,true];
+        assert_eq!(true, any(&v));
+
+        let v = vec![true,false];
+        assert_eq!(true, any(&v));
+
+        let v: Vec<bool> = vec![false,false];
+        assert_eq!(false, any(&v));
+
     }
 }
