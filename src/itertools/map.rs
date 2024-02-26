@@ -1,15 +1,11 @@
-pub struct Map<I, J>
-where
-I: Iterator
-{
-    iter: I,
-    pred: fn(&I::Item) -> J,
-    iter_finished: bool,
+
+struct Map<T, J> {
+    input: Box<dyn Iterator<Item=T>>,
+    pred: fn(T)->J,
+    iter_finished: bool
 }
 
-impl<I,J> Iterator for Map<I,J> 
-where 
-    I: Iterator
+impl<T,J> Iterator for Map<T, J>
 {
     type Item = J;
 
@@ -17,29 +13,27 @@ where
         if self.iter_finished {
             return None;
         }
-
-        let _next = self.iter.next();
+        let _next = self.input.next();
         match _next {
             None => {
                 self.iter_finished = true;
                 return None;
             },
             Some(v) => {
-                return Some((self.pred)(&v));
+                let j = (self.pred)(v);
+                return Some(j);
             }
         }
     }
 }
 
-pub fn map<I,J>(i: I, pred: fn(&I::Item)->J) -> Map<I::IntoIter, J>
-where
-    I: IntoIterator
+pub fn map<T: 'static, J: 'static>(i: Box<dyn Iterator<Item=T>>, pred: fn(T)->J) -> Box<dyn Iterator<Item=J>> 
 {
-    Map {
-        iter: i.into_iter(),
+    return Box::new(Map {
+        input: i,
         pred: pred,
         iter_finished: false
-    }
+    });
 }
 
 #[cfg(test)]
@@ -49,7 +43,8 @@ mod tests {
     #[test]
     fn test1() {
         let v = vec![1,2,3];
-        let m = map(v, |x| {*x == 3});
-        assert_eq!(vec![false,false,true], m.collect::<Vec<_>>());
+        let ret = map(Box::new(v.into_iter()), |x| {x==3});
+        assert_eq!(vec![false,false,true], ret.collect::<Vec<_>>());
     }
 }
+

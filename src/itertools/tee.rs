@@ -1,66 +1,50 @@
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 #[allow(dead_code)]
-pub struct TeeInner<I: Iterator> {
-    buf1: VecDeque<I::Item>,
-    buf2: VecDeque<I::Item>,
-    iter: I,
+struct TeeInner<T> 
+where
+T: Clone
+{
+    buf1: VecDeque<T>,
+    buf2: VecDeque<T>,
+    iter: Box<dyn Iterator<Item = T>>,
     iter_finished: bool
 }
 
-pub struct Tee<I: Iterator> {
-    inner: Rc<RefCell<TeeInner<I>>>
-}
-
-impl<I> Tee<I> 
+impl<T> TeeInner<T> 
 where
-I: Iterator,
-I::Item: Clone
+T: Clone
 {
-    pub fn new(iterable: I) -> Tee<I> {
-        let inner = TeeInner {
+    pub fn new(iter: Box<dyn Iterator<Item = T>>) -> TeeInner<T> {
+        return TeeInner {
             buf1: VecDeque::new(),
             buf2: VecDeque::new(),
-            iter: iterable,
+            iter,
             iter_finished: false
         };
-
-        let ret = Tee {
-            inner: Rc::new(RefCell::new(inner))
-        };
-
-        return ret;
-    }
-
-    pub fn iter(&self) -> (TeeCursor<I>, TeeCursor<I>) {
-        let ret0 = TeeCursor {
-            no: 1,
-            inner: Rc::clone(&self.inner)
-        };
-
-        let ret1 = TeeCursor {
-            no: 2,
-            inner: Rc::clone(&self.inner)
-        };
-
-        return (ret0, ret1);
     }
 }
 
-pub struct TeeCursor<I> 
+pub struct Tee<T> 
 where
-I: Iterator
+T: Clone 
+{
+    inner: Rc<RefCell<TeeInner<T>>>
+}
+
+struct TeeCursor<T> 
+where
+T: Clone
 {
     no: usize,
-    inner: Rc<RefCell<TeeInner<I>>>
+    inner: Rc<RefCell<TeeInner<T>>>
 }
 
-impl<I> Iterator for TeeCursor<I>
+impl<T> Iterator for TeeCursor<T> 
 where
-I: Iterator,
-I::Item: Clone
+T: Clone
 {
-    type Item = <I as Iterator>::Item;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         let _next = self.inner.borrow_mut().iter.next();
@@ -88,36 +72,64 @@ I::Item: Clone
         } else {
             return None;
         }
-        
+    }
+}
+
+impl<T> Tee<T> 
+where
+T: Clone + 'static
+{
+    pub fn new(iter: Box<dyn Iterator<Item=T>>) -> Tee<T> {
+        let inner = TeeInner::new(iter);
+
+        let ret = Tee {
+            inner: Rc::new(RefCell::new(inner))
+        };
+
+        return ret;
+    }
+
+    pub fn iter(&self) -> (Box<dyn Iterator<Item=T>>, Box<dyn Iterator<Item=T>>) {
+        let ret0: Box<dyn Iterator<Item=T>> = Box::new(TeeCursor {
+            no: 1,
+            inner: Rc::clone(&self.inner)
+        });
+
+        let ret1: Box<dyn Iterator<Item=T>> = Box::new(TeeCursor {
+            no: 2,
+            inner: Rc::clone(&self.inner)
+        });
+
+        return (ret0, ret1);
     }
 }
 
 
-pub fn tee<J>(buf: J) -> (TeeCursor<J>, TeeCursor<J>)
+
+pub fn tee<T: 'static>(iterator: Box<dyn Iterator<Item=T>>) -> (Box<dyn Iterator<Item=T>>,Box<dyn Iterator<Item=T>>) 
 where
-J: Iterator,
-J::Item: Clone
+T: Clone
 {
-    let t = Tee::new(buf);
+    let t = Tee::new(iterator);
     return t.iter();
 }
-
-
 
 #[cfg(test)]
 mod tests {
     use std::vec;
 
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
-        let v = vec![1,2,3,4,5];
+        let v = iter_from_vec(vec![1,2,3,4,5]);
         let (t1,t2) = tee(v.into_iter());
         assert_eq!(vec![1, 2, 3, 4, 5], t1.collect::<Vec<_>>());
         assert_eq!(vec![1, 2, 3, 4, 5], t2.collect::<Vec<_>>());
 
-        let v = vec![1,2,3,4,5];
+        let v = iter_from_vec(vec![1,2,3,4,5]);
         let (mut t1, mut t2) = tee(v.into_iter());
         assert_eq!(Some(1), t1.next());
         assert_eq!(Some(1), t2.next());
@@ -132,7 +144,7 @@ mod tests {
         assert_eq!(None, t1.next());
         assert_eq!(None, t2.next());
 
-        let v = vec![1,2,3,4,5];
+        let v = iter_from_vec(vec![1,2,3,4,5]);
         let (mut t1, mut t2) = tee(v.into_iter());
         assert_eq!(Some(1), t1.next());
         assert_eq!(Some(2), t1.next());
@@ -150,7 +162,7 @@ mod tests {
         assert_eq!(None, t1.next());
         assert_eq!(None, t2.next());
 
-        let v = vec![1,2,3,4];
+        let v = iter_from_vec(vec![1,2,3,4]);
         let (mut t1, mut t2) = tee(v.into_iter());
         assert_eq!(Some(1), t1.next());
         assert_eq!(Some(2), t1.next());
