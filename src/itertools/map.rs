@@ -1,6 +1,6 @@
 
 struct Map<T, J> {
-    input: Box<dyn Iterator<Item=T>>,
+    iter: Box<dyn Iterator<Item=T>>,
     pred: fn(T)->J,
     iter_finished: bool
 }
@@ -13,7 +13,7 @@ impl<T,J> Iterator for Map<T, J>
         if self.iter_finished {
             return None;
         }
-        let _next = self.input.next();
+        let _next = self.iter.next();
         match _next {
             None => {
                 self.iter_finished = true;
@@ -27,10 +27,10 @@ impl<T,J> Iterator for Map<T, J>
     }
 }
 
-pub fn map<T: 'static, J: 'static>(i: Box<dyn Iterator<Item=T>>, pred: fn(T)->J) -> Box<dyn Iterator<Item=J>> 
+pub fn map<T: 'static, J: 'static>(iter: Box<dyn Iterator<Item=T>>, pred: fn(T)->J) -> Box<dyn Iterator<Item=J>> 
 {
     return Box::new(Map {
-        input: i,
+        iter,
         pred: pred,
         iter_finished: false
     });

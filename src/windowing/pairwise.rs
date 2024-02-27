@@ -1,33 +1,32 @@
-use super::sliding_window::{sliding_windowed, SlidingWindow};
+use std::fmt::Debug;
+
+use super::sliding_window::sliding_windowed;
 use crate::error::Error;
 
-pub struct Pairwise<I>
+pub struct Pairwise<T>
 where 
-    I: IntoIterator,
-    I::Item: Clone
+T: Clone + Debug + 'static
 {
-    sliding_window: SlidingWindow<I::IntoIter>
+    iter: Box<dyn Iterator<Item=Result<Vec<T>, Error>>>
 }
 
-impl<I> Iterator for Pairwise<I> 
+impl<T> Iterator for Pairwise<T> 
 where 
-    I: Iterator,
-    I::Item: Clone
+T: Clone + Debug
 {
-    type Item = Result<Vec<<I as Iterator>::Item>, Error>;
+    type Item = Result<Vec<T>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        return self.sliding_window.next();
+        return self.iter.next();
     }
 }
 
-pub fn pairwise<I>(iterable: I) -> Pairwise<I::IntoIter>
+pub fn pairwise<T>(iter: Box<dyn Iterator<Item=T>>) -> Pairwise<T>
 where
-    I: IntoIterator,
-    I::Item: Clone
+T: Clone + Debug
 {
     let ret: Pairwise<_> = Pairwise {
-        sliding_window: sliding_windowed(iterable, 2)
+        iter: sliding_windowed(iter, 2)
     };
 
     return ret;
@@ -35,12 +34,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![0,1,2,3,4];
-        let mut pw = pairwise(v);
+        let mut pw = pairwise(iter_from_vec(v));
 
         match pw.next() {
             None => { assert!(false); }

@@ -1,34 +1,31 @@
-use super::windowed::{windowed, Windowed};
+use std::fmt::Debug;
+
+use super::windowed::windowed;
 use crate::error::Error;
 
-pub struct SlidingWindow<I>
+pub struct SlidingWindow<T>
 where 
-    I: IntoIterator,
-    I::Item: Clone
+T: Clone + Debug + 'static
 {
-    windowed: Windowed<I::IntoIter>
+    iter: Box<dyn Iterator<Item=Result<Vec<T>, Error>>>
 }
 
-impl<I> Iterator for SlidingWindow<I> 
+impl<T> Iterator for SlidingWindow<T> 
 where 
-    I: Iterator,
-    I::Item: Clone
+T: Clone + Debug + 'static
 {
-    type Item = Result<Vec<<I as Iterator>::Item>, Error>;
+    type Item = Result<Vec<T>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        return self.windowed.next();
+        return self.iter.next();
     }
 }
 
-pub fn sliding_windowed<I>(iterable: I, n: usize) -> SlidingWindow<I::IntoIter>
+pub fn sliding_windowed<T>(iter: Box<dyn Iterator<Item=T>>, n: usize) -> Box<dyn Iterator<Item=Result<Vec<T>, Error>>> 
 where
-    I: IntoIterator,
-    I::Item: Clone
+T: Clone + Debug + 'static
 {
-    let ret: SlidingWindow<_> = SlidingWindow {
-        windowed: windowed(iterable, n, 1)
-    };
+    let ret = windowed(iter, n, 1);
 
     return ret;
 }
@@ -36,13 +33,15 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![0,1,2,3,4,5];
 
-        let mut w = sliding_windowed(v, 4);
+        let mut w = sliding_windowed(iter_from_vec(v), 4);
         match w.next().unwrap() {
             Ok(v) => { assert_eq!(vec![0,1,2,3], v); }
             Err(_) => { assert!(false); }
@@ -64,7 +63,7 @@ mod tests {
     #[test]
     fn test2() {
         let v = vec![0,1,2];
-        let mut w = sliding_windowed(v, 4);
+        let mut w = sliding_windowed(iter_from_vec(v), 4);
         match w.next() {
             Some(_) => { assert!(false); }
             None => { assert!(true); }
