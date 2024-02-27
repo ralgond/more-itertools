@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn test1() {
-        let v = Box::new(create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]));
+        let v = create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]);
         let dist: Distribute<i32> = distribute(v, 3);
 
         let mut cur_0 = dist.iter(0);
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn test2() {
-        let v = Box::new(create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]));
+        let v = create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]);
         let dist: Distribute<i32> = distribute(v, 3);
 
         let mut cur_0 = dist.iter(0);
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test3() {
-        let v = Box::new(create_seq_from_vec(vec![1,2,3]));
+        let v = create_seq_from_vec(vec![1,2,3]);
         let dist: Distribute<i32> = distribute(v, 5);
 
         let mut cur_0 = dist.iter(0);

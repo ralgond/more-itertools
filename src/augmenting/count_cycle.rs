@@ -46,7 +46,7 @@ where
 T: Clone
 {
     let cc = CountCycle {
-        seq: Box::new(create_seq_from_iterator(iter)),
+        seq: create_seq_from_iterator(iter),
         n: n,
         cur_num: 0,
         cur_iter_idx: 0

@@ -3,12 +3,13 @@ use std::rc::Rc;
 use crate::error;
 use crate::error::Error;
 use crate::itertools::accumulate::accumulate;
+use crate::sequence::Sequence;
 use crate::utils::extract_value_from_result_vec;
 
 
 #[allow(dead_code)]
-pub struct DivideInner<T> {
-    pub(crate) buf: Vec<T>,
+pub(crate) struct DivideInner<T> {
+    buf: Box<dyn Sequence<T>>,
     pub(crate) n: usize,
     len_vec: Vec<usize>,
     accumulate_overflow: bool
@@ -22,7 +23,7 @@ impl<T> Divide<T>
 where
 T: Clone
 {
-    pub fn new(buf: Vec<T>, bucket_count: usize) -> Divide<T> {
+    pub fn new(buf: Box<dyn Sequence<T>>, bucket_count: usize) -> Divide<T> {
         let mut _len_vec = Vec::new();
         let base = buf.len() / bucket_count;
         let _mod = buf.len() % bucket_count;
@@ -83,7 +84,7 @@ T: Clone
     }
 }
 
-pub fn divide<T>(buf: Vec<T>, bucket_cnt: usize) -> Divide<T>
+pub fn divide<T>(buf: Box<dyn Sequence<T>>, bucket_cnt: usize) -> Divide<T>
 where
 T: Clone
 {
@@ -140,12 +141,15 @@ impl<T> Drop for Divide<T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::sequence::create_seq_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3,4,5,6,7,8,9,10];
-        let dist = divide(v, 3);
+        let seq = create_seq_from_vec(v);
+        let dist = divide(seq, 3);
 
         let mut cur_0 = dist.iter(0);
         assert_eq!(1, cur_0.next().unwrap().ok().unwrap());
@@ -170,7 +174,7 @@ mod tests {
 
     #[test]
     fn test2() {
-        let v = vec![1,2,3,4,5,6,7,8,9,10];
+        let v = create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]);
         let dist = divide(v, 3);
 
         let mut cur_0 = dist.iter(0);

@@ -64,14 +64,14 @@ mod tests {
 
     #[test]
     fn test1() {
-        let mut l = rlocate(Box::new(create_seq_from_vec(vec![1,1,1,1,1])), vec![1,1,1]);
+        let mut l = rlocate(create_seq_from_vec(vec![1,1,1,1,1]), vec![1,1,1]);
         assert_eq!(Some(Ok(2)), l.next());
         assert_eq!(Some(Ok(1)), l.next());
         assert_eq!(Some(Ok(0)), l.next());
         assert_eq!(None, l.next());
         assert_eq!(None, l.next());
 
-        let mut l = rlocate(Box::new(create_seq_from_vec(vec![1,1,1,1,1])), vec![1]);
+        let mut l = rlocate(create_seq_from_vec(vec![1,1,1,1,1]), vec![1]);
         assert_eq!(Some(Ok(4)), l.next());
         assert_eq!(Some(Ok(3)), l.next());
         assert_eq!(Some(Ok(2)), l.next());
@@ -80,13 +80,13 @@ mod tests {
         assert_eq!(None, l.next());
         assert_eq!(None, l.next());
 
-        let mut l = rlocate(Box::new(create_seq_from_vec(vec![0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3])), vec![1,2,3]);
+        let mut l = rlocate(create_seq_from_vec(vec![0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]), vec![1,2,3]);
         assert_eq!(Some(Ok(9)), l.next());
         assert_eq!(Some(Ok(5)), l.next());
         assert_eq!(Some(Ok(1)), l.next());
         assert_eq!(None, l.next());
 
-        let mut l = rlocate(Box::new(create_seq_from_vec(vec![0, 1])), vec![1,2,3]);
+        let mut l = rlocate(create_seq_from_vec(vec![0, 1]), vec![1,2,3]);
         let ret = l.next();
         if let Some(v) = ret {
             match v {

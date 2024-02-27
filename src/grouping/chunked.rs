@@ -3,18 +3,16 @@ use std::mem::swap;
 use crate::error::Error;
 use crate::error;
 
-#[derive(Debug, Clone)]
-#[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub struct Chunked<I: Iterator> {
-    buf: Vec<I::Item>,
+pub struct Chunked<T> {
+    iter: Box<dyn Iterator<Item = T>>,
+    buf: Vec<T>,
     n: usize,
-    iter: I,
     strict: bool
 }
 
 
-impl<I: Iterator> Iterator for Chunked<I> {
-    type Item = Result<Vec<<I as Iterator>::Item>, Error>;
+impl<T> Iterator for Chunked<T> {
+    type Item = Result<Vec<T>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.n == 0 {
@@ -53,26 +51,28 @@ impl<I: Iterator> Iterator for Chunked<I> {
 }
 
 /// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#chunked
-pub fn chunked<I>(iterable: I, n: usize, strict: bool) -> Chunked<I::IntoIter>
+pub fn chunked<T>(iter: Box<dyn Iterator<Item = T>>, n: usize, strict: bool) -> Box<dyn Iterator<Item = Result<Vec<T>, Error>>>
 where
-    I: IntoIterator,
+    T: 'static,
 {
-    Chunked {
+    Box::new(Chunked {
+        iter,
         buf: Vec::new(),
-        n: n,
-        iter: iterable.into_iter(),
-        strict: strict
-    }
+        n,
+        strict
+    })
 }
 
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1_no_strict() {
-        let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 3, false);
+        let mut it = chunked(iter_from_vec(vec![1,2,3,4,5,6,7,8,9,10]), 3, false);
 
         assert_eq!(vec![1,2,3], it.next().unwrap().ok().unwrap());
         assert_eq!(vec![4,5,6], it.next().unwrap().ok().unwrap());
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test2_strict() {
-        let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 3, true);
+        let mut it = chunked(iter_from_vec(vec![1,2,3,4,5,6,7,8,9,10]), 3, true);
 
         assert_eq!(vec![1,2,3], it.next().unwrap().ok().unwrap());
         assert_eq!(vec![4,5,6], it.next().unwrap().ok().unwrap());
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test3_no_strict_chars() {
-        let mut it = chunked("abcdefghij".chars(), 3, false);
+        let mut it = chunked(iter_from_vec("abcdefghij".chars().collect()), 3, false);
 
         assert_eq!(vec!['a', 'b', 'c'], it.next().unwrap().ok().unwrap());
         assert_eq!(vec!['d', 'e', 'f'], it.next().unwrap().ok().unwrap());
@@ -108,13 +108,13 @@ mod tests {
 
     #[test]
     fn test3_no_strict_string() {
-        let v: [String; 4] = [String::from("1"),
+        let v = vec![String::from("1"),
                             String::from("2"),
                             String::from("3"),
                             String::from("4")
                             ];
 
-        let mut it = chunked(v, 3, false);
+        let mut it = chunked(iter_from_vec(v), 3, false);
 
         assert_eq!(vec![String::from("1"), String::from("2") ,String::from("3")], it.next().unwrap().ok().unwrap());
         assert_eq!(vec![String::from("4")], it.next().unwrap().ok().unwrap());
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn test4_value_error_n_is_0() {
-        let mut it = chunked(vec![1,2,3,4,5,6,7,8,9,10], 0, false);
+        let mut it = chunked(iter_from_vec(vec![1,2,3,4,5,6,7,8,9,10]), 0, false);
         assert_eq!(error::Kind::ValueError, it.next().unwrap().err().unwrap().kind());
     }
 }

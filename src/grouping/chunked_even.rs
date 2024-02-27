@@ -1,4 +1,4 @@
-use crate::error;
+use crate::{error, sequence::Sequence};
 
 use super::divide::{divide, Divide};
 
@@ -7,7 +7,7 @@ pub struct ChunkedEven<T> {
     cur: usize
 }
 
-pub fn chunked_even<T>(buf: Vec<T>, bucket_cnt: usize) -> ChunkedEven<T> 
+pub fn chunked_even<T>(buf: Box<dyn Sequence<T>>, bucket_cnt: usize) -> ChunkedEven<T> 
 where
 T: Clone + 'static
 {
@@ -51,11 +51,13 @@ T: Clone + 'static
 
 #[cfg(test)]
 mod tests {
+    use crate::sequence::create_seq_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
-        let v = vec![1,2,3,4,5,6,7,8,9,10];
+        let v = create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]);
         let mut ce = chunked_even(v, 3);
 
         assert_eq!(Some(Ok(vec![1, 2, 3, 4])), ce.next());
