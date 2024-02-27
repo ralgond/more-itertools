@@ -5,18 +5,18 @@ struct MarkEndsOutputItem<T> {
     item: Option<T>
 }
 
-pub struct MarkEnds<I: Iterator> 
+pub struct MarkEnds<T> 
 {
-    iter: I,
+    iter: Box<dyn Iterator<Item=T>>,
     emitted_head: bool,
-    buffer: VecDeque<MarkEndsOutputItem<I::Item>>,
+    buffer: VecDeque<MarkEndsOutputItem<T>>,
     iter_finished: bool
 }
 
 
-impl<I: Iterator> Iterator for MarkEnds<I>
+impl<T> Iterator for MarkEnds<T>
 {
-    type Item = (bool, bool, <I as Iterator>::Item);
+    type Item = (bool, bool, T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -70,39 +70,40 @@ impl<I: Iterator> Iterator for MarkEnds<I>
     }
 }
 
-pub fn mark_ends<I>(iterable: I) -> MarkEnds<I::IntoIter>
-where
-I: IntoIterator,
+pub fn mark_ends<T>(iter: Box<dyn Iterator<Item=T>>) -> Box<dyn Iterator<Item=(bool,bool,T)>>
+where T: 'static
 {
-    MarkEnds {
-        iter: iterable.into_iter(),
+    Box::new(MarkEnds {
+        iter: iter,
         buffer: VecDeque::new(),
         emitted_head: false,
         iter_finished: false
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
+
+    use crate::itertools::iter::iter_from_vec;
 
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3];
-        let me = mark_ends(v);
+        let me = mark_ends(iter_from_vec(v));
         assert_eq!(vec![(true, false, 1), (false, false, 2), (false, true, 3)], me.collect::<Vec<_>>());
 
         let v = vec![1,2];
-        let me = mark_ends(v);
+        let me = mark_ends(iter_from_vec(v));
         assert_eq!(vec![(true, false, 1), (false, true, 2)], me.collect::<Vec<_>>());
 
         let v = vec![1];
-        let me = mark_ends(v);
+        let me = mark_ends(iter_from_vec(v));
         assert_eq!(vec![(true, true, 1)], me.collect::<Vec<_>>());
 
         let v = Vec::<(bool, bool, i32)>::new();
-        let me = mark_ends(v);
+        let me = mark_ends(iter_from_vec(v));
         // println!("{:?}", me.collect::<Vec<_>>());
         assert_eq!(0, me.collect::<Vec<_>>().len());
     }

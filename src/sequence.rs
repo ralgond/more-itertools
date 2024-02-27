@@ -1,12 +1,9 @@
 
 
-pub trait Sequence<T> 
-where T: PartialEq
+pub trait Sequence<T>
 {
     fn get<'a>(&'a self, index: usize) -> Option<&'a T>;
     fn len(&self) -> usize;
-    fn equals(&self, other: &dyn Sequence<T>) -> bool;
-    fn equals2(&self, other: &[T]) -> bool;
     fn slice(&self, begin: usize, end: usize) -> &[T];
     fn as_slice(&self) -> &[T];
 }
@@ -23,8 +20,7 @@ impl<T> SequenceVector<T> {
     }
 }
 
-impl<T> Sequence<T> for SequenceVector<T> 
-where T: PartialEq
+impl<T> Sequence<T> for SequenceVector<T>
 {
     fn get<'a>(&'a self, index: usize) -> Option<&'a T> {
         return self.v.get(index);
@@ -38,17 +34,15 @@ where T: PartialEq
         return &self.v[begin..end];
     }
 
-    fn equals(&self, other: &dyn Sequence<T>) -> bool {
-        return self.v.len() == other.len() && self.v.starts_with(other.as_slice());
-    }
-
     fn as_slice(&self) -> &[T] {
         return self.v.as_slice();
     }
+}
 
-    fn equals2(&self, other: &[T]) -> bool {
-        return self.v.len() == other.len() && self.v.starts_with(other);
-    }
+pub fn are_seqs_equals<T>(seq1: &dyn Sequence<T>, seq2: &dyn Sequence<T>) -> bool
+where T: PartialEq
+{
+    return seq1.len() == seq2.len() && seq1.as_slice().starts_with(seq2.as_slice());
 }
 
 pub fn create_seq_from_vec<T>(v: Vec<T>) -> impl Sequence<T> 
@@ -59,13 +53,28 @@ where T: PartialEq
 
 pub fn create_seq_from_into_iterator<I>(iterable: I) -> impl Sequence<I::Item>
 where
-    I: IntoIterator,
-    I::Item: PartialEq
+    I: IntoIterator
 {
     let mut v = Vec::new();
     let mut it = iterable.into_iter();
     loop {
         let _next = it.next();
+        match _next {
+            None => { break; }
+            Some(_v) => {
+                v.push(_v);
+            }
+        }
+    }
+
+    return SequenceVector::new(v);
+}
+
+pub fn create_seq_from_iterator<T>(mut iter: Box<dyn Iterator<Item=T>>) -> impl Sequence<T> 
+{
+    let mut v = Vec::new();
+    loop {
+        let _next = iter.next();
         match _next {
             None => { break; }
             Some(_v) => {

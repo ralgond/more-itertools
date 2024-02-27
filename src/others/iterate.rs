@@ -5,12 +5,7 @@ pub struct Iterate<T> {
     start: T
 }
 
-pub struct IntoIter<T> {
-    func: fn(&T) -> T,
-    start: T
-}
-
-impl<T> Iterator for IntoIter<T> 
+impl<T> Iterator for Iterate<T> 
 where 
 T: Clone
 {
@@ -23,27 +18,15 @@ T: Clone
     }
 }
 
-impl<T> IntoIterator for Iterate<T> 
-where 
-T: Clone
-{
-    type Item = T;
-    type IntoIter = IntoIter<T>;
 
-    fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            func: self.func,
-            start: self.start
-        }
-    }
-}
-
-pub fn iterate<T>(func: fn(&T) -> T, start: T) -> Iterate<T>
+pub fn iterate<T>(func: fn(&T) -> T, start: T) -> Box<dyn Iterator<Item = T>>
+where
+T: Clone + 'static
 {
-    Iterate {
+    Box::new(Iterate {
         func: func,
         start: start
-    }
+    })
 }
 
 #[cfg(test)]
@@ -64,7 +47,7 @@ mod tests {
 
     #[test]
     fn test2() {
-        let i = islice(iterate(|x: &i32| { x * 2 }, 1), 0, 10, 1);
+        let i = islice(iterate(|x| { x * 2 }, 1), 0, 10, 1);
         let j = extract_value_from_result_vec(i.collect::<Vec<_>>());
         // println!("{:?}", j.0);
         assert_eq!(vec![1, 2, 4, 8, 16, 32, 64, 128, 256, 512], j.0);

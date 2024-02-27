@@ -1,10 +1,10 @@
 
-pub struct Padded<I: Iterator> 
+pub struct Padded<T> 
 where
-I::Item: Clone
+T: Clone
 {
-    iter: I,
-    fill_value: I::Item,
+    iter: Box<dyn Iterator<Item=T>>,
+    fill_value: T,
     n: usize,
     next_multiple: bool,
     offset: usize,
@@ -13,11 +13,11 @@ I::Item: Clone
 }
 
 
-impl<I: Iterator> Iterator for Padded<I>
+impl<T> Iterator for Padded<T>
 where
-I::Item: Clone
+T: Clone
 {
-    type Item = <I as Iterator>::Item;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.next_multiple {
@@ -70,55 +70,56 @@ I::Item: Clone
     }
 }
 
-pub fn padded<I>(iterable: I, fill_value: I::Item, n: usize, next_multiple: bool) -> Padded<I::IntoIter>
+pub fn padded<T>(iter: Box<dyn Iterator<Item=T>>, fill_value: T, n: usize, next_multiple: bool) -> Box<dyn Iterator<Item=T>>
 where
-I: IntoIterator,
-I::Item: Clone
+T: Clone + 'static
 {
-    Padded {
-        iter: iterable.into_iter(),
-        fill_value: fill_value,
-        n: n,
-        next_multiple: next_multiple,
+    Box::new(Padded {
+        iter,
+        fill_value,
+        n,
+        next_multiple,
         offset: 0,
         iter_finished: false,
         __n: 0
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use std::vec;
 
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3];
-        let p = padded(v, 0, 5, false);
+        let p = padded(iter_from_vec(v), 0, 5, false);
         assert_eq!(vec![1,2,3,0,0], p.collect::<Vec<_>>());
 
         let v = vec![1,2,3];
-        let p = padded(v, 0, 2, false);
+        let p = padded(iter_from_vec(v), 0, 2, false);
         assert_eq!(vec![1,2,3], p.collect::<Vec<_>>());
     }
 
     #[test]
     fn test2() {
         let v = vec![1,2,3];
-        let p = padded(v, 0, 5, true);
+        let p = padded(iter_from_vec(v), 0, 5, true);
         assert_eq!(vec![1,2,3,0,0], p.collect::<Vec<_>>());
 
         let v = vec![1,2,3];
-        let p = padded(v, 0, 2, true);
+        let p = padded(iter_from_vec(v), 0, 2, true);
         assert_eq!(vec![1,2,3,0], p.collect::<Vec<_>>());
 
         let v = vec![1,2,3,4];
-        let p = padded(v, 0, 2, true);
+        let p = padded(iter_from_vec(v), 0, 2, true);
         assert_eq!(vec![1,2,3,4], p.collect::<Vec<_>>());
 
         let v = vec![1,2,3,4];
-        let p = padded(v, 0, 4, true);
+        let p = padded(iter_from_vec(v), 0, 4, true);
         assert_eq!(vec![1,2,3,4], p.collect::<Vec<_>>());
     }
 }

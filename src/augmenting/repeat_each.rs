@@ -1,24 +1,24 @@
 use std::collections::VecDeque;
 
 
-pub struct RepeatEach<I: Iterator> 
+pub struct RepeatEach<T> 
 where
-I::Item: Clone
+T: Clone
 {
-    iter: I,
+    iter: Box<dyn Iterator<Item = T>>,
     n: usize,
-    item_buffer: VecDeque<I::Item>,
+    item_buffer: VecDeque<T>,
     emit_count: usize,
     iter_finished: bool,
     emit_finished : bool
 }
 
 
-impl<I: Iterator> Iterator for RepeatEach<I>
+impl<T> Iterator for RepeatEach<T>
 where
-I::Item: Clone
+T: Clone
 {
-    type Item = <I as Iterator>::Item;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -53,34 +53,35 @@ I::Item: Clone
     }
 }
 
-pub fn repeat_each<I>(iterable: I, n: usize) -> RepeatEach<I::IntoIter>
+pub fn repeat_each<T>(iter: Box<dyn Iterator<Item=T>>, n: usize) -> Box<dyn Iterator<Item=T>>
 where
-I: IntoIterator,
-I::Item: Clone
+T: Clone + 'static
 {
-    RepeatEach {
-        iter: iterable.into_iter(),
-        n: n,
+    Box::new(RepeatEach {
+        iter,
+        n,
         item_buffer: VecDeque::new(),
         emit_count: 0,
         iter_finished: false,
         emit_finished: false
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
+
+    use crate::itertools::iter::iter_from_vec;
 
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3];
-        let ret = repeat_each(v, 3).collect::<Vec<_>>();
+        let ret = repeat_each(iter_from_vec(v), 3).collect::<Vec<_>>();
         assert_eq!(vec![1, 1, 1, 2, 2, 2, 3, 3, 3], ret);
 
         let v = vec![1,2,3];
-        let ret = repeat_each(v, 0).collect::<Vec<_>>();
+        let ret = repeat_each(iter_from_vec(v), 0).collect::<Vec<_>>();
         assert_eq!(0, ret.len());
     }
 }

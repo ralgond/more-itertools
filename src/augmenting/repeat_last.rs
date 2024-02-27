@@ -1,19 +1,19 @@
-pub struct RepeatLast<I: Iterator> 
+pub struct RepeatLast<T> 
 where
-I::Item: Clone
+T: Clone
 {
-    iter: I,
-    default_item: Option<I::Item>,
-    last_item: Option<I::Item>,
+    iter: Box<dyn Iterator<Item = T>>,
+    default_item: Option<T>,
+    last_item: Option<T>,
     iter_finished: bool,
 }
 
 
-impl<I: Iterator> Iterator for RepeatLast<I>
+impl<T> Iterator for RepeatLast<T>
 where
-I::Item: Clone
+T: Clone
 {
-    type Item = <I as Iterator>::Item;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -42,33 +42,32 @@ I::Item: Clone
     }
 }
 
-pub fn repeat_last<I>(iterable: I, default_item: I::Item) -> RepeatLast<I::IntoIter>
+pub fn repeat_last<T>(iter: Box<dyn Iterator<Item=T>>, default_item: T) -> Box<dyn Iterator<Item=T>>
 where
-I: IntoIterator,
-I::Item: Clone
+T: Clone + 'static
 {
-    RepeatLast {
-        iter: iterable.into_iter(),
+    Box::new(RepeatLast {
+        iter,
         default_item: Some(default_item),
         last_item: None,
         iter_finished: false
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
 
-    use crate::{itertools::islice::islice, utils::extract_value_from_result_vec};
+    use crate::{itertools::{islice::islice, iter::iter_from_vec}, utils::extract_value_from_result_vec};
 
     use super::*;
 
     #[test]
     fn test1() {
 
-        let rl = repeat_last(vec![1,2,3], 0);
+        let rl = repeat_last(iter_from_vec(vec![1,2,3]), 0);
         assert_eq!((vec![1, 2, 3, 3, 3], false), extract_value_from_result_vec(islice(rl, 0, 5, 1).collect::<Vec<_>>()));
 
-        let rl = repeat_last(Vec::<i32>::new(), 42);
+        let rl = repeat_last(iter_from_vec(Vec::<i32>::new()), 42);
         assert_eq!((vec![42,42,42,42,42], false), extract_value_from_result_vec(islice(rl, 0, 5, 1).collect::<Vec<_>>()));
     }
 }

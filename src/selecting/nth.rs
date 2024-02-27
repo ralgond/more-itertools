@@ -1,10 +1,10 @@
 use crate::itertools::islice::islice;
 
-pub fn nth<I>(iterable: I, n: usize, default: Option<I::Item>) -> Option<I::Item>
+pub fn nth<T>(iter: Box<dyn Iterator<Item = T>>, n: usize, default: Option<T>) -> Option<T>
 where
-    I: IntoIterator
+T: 'static
 {
-    let mut i = islice(iterable, n, n+1, 1);
+    let mut i = islice(iter, n, n+1, 1);
 
     match i.next() {
         None => {
@@ -24,12 +24,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
-        assert_eq!(Some(5), nth(vec![0,1,2,3,4,5], 5, Some(1)));
-        assert_eq!(Some(0), nth(vec![0,1,2,3,4,5], 7, Some(0)));
-        assert_eq!(None, nth(vec![0,1,2,3,4,5], 7, None));
+        assert_eq!(Some(5), nth(iter_from_vec(vec![0,1,2,3,4,5]), 5, Some(1)));
+        assert_eq!(Some(0), nth(iter_from_vec(vec![0,1,2,3,4,5]), 7, Some(0)));
+        assert_eq!(None, nth(iter_from_vec(vec![0,1,2,3,4,5]), 7, None));
     }
 }

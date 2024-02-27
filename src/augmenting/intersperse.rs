@@ -1,35 +1,30 @@
 use std::collections::VecDeque;
-use std::fmt::Debug;
 
 use crate::error;
 use crate::error::Error;
 
-#[derive(Debug)]
 struct IntersperseOutputBuffer<T> 
-where
-T: Debug
 {
     items: VecDeque<T>
 }
 
-#[derive(Debug)]
-pub struct Intersperse<I: Iterator> 
+pub struct Intersperse<T> 
 where
-I::Item: Clone + Debug
+T: Clone + 'static
 {
-    buffer: IntersperseOutputBuffer<I::Item>,
-    iter: I,
+    buffer: IntersperseOutputBuffer<T>,
+    iter: Box<dyn Iterator<Item=T>>,
     n: usize,
-    e: I::Item,
+    e: T,
     iter_finished: bool,
     emit_count: usize
 }
 
-impl<I: Iterator> Iterator for Intersperse<I>
+impl<T> Iterator for Intersperse<T>
 where
-I::Item: Clone + Debug
+T: Clone
 {
-    type Item = Result<<I as Iterator>::Item, Error>;
+    type Item = Result<T, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.n == 0 {
@@ -61,49 +56,48 @@ I::Item: Clone + Debug
     }
 }
 
-pub fn intersperse<I>(e: I::Item, iterable: I, n: usize) -> Intersperse<I::IntoIter>
+pub fn intersperse<T>(e: T, iter: Box<dyn Iterator<Item=T>>, n: usize) -> Box<dyn Iterator<Item=Result<T, Error>>>
 where
-I: IntoIterator,
-I::Item: Clone + Debug
+T: Clone + 'static
 {
     let isp = Intersperse {
         buffer: IntersperseOutputBuffer {
             items: VecDeque::new(),
         },
-        iter: iterable.into_iter(),
-        n: n,
-        e: e,
+        iter,
+        n,
+        e,
         iter_finished: false,
         emit_count: 0
     };
 
-    return isp;
+    return Box::new(isp);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::extract_value_from_result_vec;
+    use crate::{itertools::iter::iter_from_vec, utils::extract_value_from_result_vec};
 
     use super::*;
 
     #[test]
     fn test1() {
-        let mut isp = intersperse(0, vec![1,2,3,4,5], 0);
+        let mut isp = intersperse(0, iter_from_vec(vec![1,2,3,4,5]), 0);
         assert_eq!(error::Kind::ValueError, isp.next().unwrap().err().unwrap().kind());
 
-        let mut isp = intersperse(0, Vec::<i32>::new(), 1);
+        let mut isp = intersperse(0, iter_from_vec(Vec::<i32>::new()), 1);
         assert_eq!(None, isp.next());
 
-        let isp = intersperse(0, vec![1,2,3,4,5], 1);
+        let isp = intersperse(0, iter_from_vec(vec![1,2,3,4,5]), 1);
         assert_eq!((vec![1, 0, 2, 0, 3, 0, 4, 0, 5], false), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
 
-        let isp = intersperse(0, vec![1,2,3,4,5], 2);
+        let isp = intersperse(0, iter_from_vec(vec![1,2,3,4,5]), 2);
         assert_eq!((vec![1, 2, 0, 3, 4, 0, 5], false), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
 
-        let isp = intersperse(0, vec![1], 1);
+        let isp = intersperse(0, iter_from_vec(vec![1]), 1);
         assert_eq!((vec![1], false), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
 
-        let isp = intersperse(0, vec![1], 2);
+        let isp = intersperse(0, iter_from_vec(vec![1]), 2);
         assert_eq!((vec![1], false), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
     }
 }

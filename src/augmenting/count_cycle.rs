@@ -1,17 +1,20 @@
-use crate::sequence::{create_seq_from_into_iterator, Sequence};
+use crate::sequence::{create_seq_from_iterator, Sequence};
 
-pub struct CountCycle<I: Iterator> {
-    seq: Box<dyn Sequence<I::Item>>,
+pub struct CountCycle<T> 
+where
+T: Clone
+{
+    seq: Box<dyn Sequence<T>>,
     n: usize,
     cur_num: usize,
     cur_iter_idx: usize
 }
 
-impl<I: Iterator> Iterator for CountCycle<I>
+impl<T> Iterator for CountCycle<T>
 where 
-I::Item: PartialEq + Clone
+T: Clone
 {
-    type Item = (usize, <I as Iterator>::Item);
+    type Item = (usize, T);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.seq.len() == 0 {
@@ -38,29 +41,30 @@ I::Item: PartialEq + Clone
     }
 }
 
-pub fn count_cycle<I>(iterable: I, n: usize) -> CountCycle<I::IntoIter>
+pub fn count_cycle<T: 'static>(iter: Box<dyn Iterator<Item=T>>, n: usize) -> Box<dyn Iterator<Item=(usize,T)>> 
 where
-    I: IntoIterator + 'static,
-    I::Item: PartialEq
+T: Clone
 {
     let cc = CountCycle {
-        seq: Box::new(create_seq_from_into_iterator(iterable)),
+        seq: Box::new(create_seq_from_iterator(iter)),
         n: n,
         cur_num: 0,
         cur_iter_idx: 0
     };
 
-    return cc;
+    return Box::new(cc);
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec!['A', 'B'];
-        let mut cc = count_cycle(v, 3);
+        let mut cc = count_cycle(iter_from_vec(v), 3);
 
         assert_eq!(Some((0, 'A')), cc.next());
         assert_eq!(Some((0, 'B')), cc.next());
@@ -73,7 +77,7 @@ mod tests {
 
 
         let v = Vec::<char>::new();
-        let mut cc = count_cycle(v, 3);
+        let mut cc = count_cycle(iter_from_vec(v), 3);
         assert_eq!(None, cc.next());
     }
 }
