@@ -76,81 +76,24 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::itertools::iter::iter_from_vec;
+    use crate::{itertools::iter::iter_from_vec, utils::extract_value_from_result_vec};
 
     use super::*;
 
     #[test]
     fn test1() {
-        let mut i = islice(iter_from_vec(vec![0,1,2,3,4]), 3, 10, 1);
-        match i.next() {
-            Some(v) => {
-                match v {
-                    Ok(ok) => { assert_eq!(3, ok); }
-                    Err(_) => {}
-                }
-            },
-            None => { assert!(false)}
-        }
-
-        match i.next() {
-            Some(v) => {
-                match v {
-                    Ok(ok) => { assert_eq!(4, ok); }
-                    Err(_) => {}
-                }
-            },
-            None => { assert!(false)}
-        }
-
-        match i.next() {
-            Some(_) => { assert!(false) },
-            None => { assert!(true)}
-        }
+        let i = islice(iter_from_vec(vec![0,1,2,3,4]), 3, 10, 1);
+        let ret = extract_value_from_result_vec(i.collect::<Vec<_>>());
+        assert_eq!(vec![3,4], ret.0);
 
         let mut i2 = islice(iter_from_vec(vec![0,1,2,3,4,5,6]), 7, 10, 1);
-        match i2.next() {
-            Some(_) => { assert!(false) },
-            None => { assert!(true)}
-        }
+        assert_eq!(None, i2.next());
 
         let v3  = vec![0,1,2,3,4,5,6,7,8,9,10];
-        let mut i3 = islice(iter_from_vec(v3), 3, 11, 3);
-        match i3.next() {
-            Some(v) => {
-                match v {
-                    Ok(ok) => { assert_eq!(3, ok); }
-                    Err(_) => {}
-                }
-            },
-            None => { assert!(false)}
-        }
-        match i3.next() {
-            Some(v) => {
-                match v {
-                    Ok(ok) => { assert_eq!(6, ok); }
-                    Err(_) => {}
-                }
-            },
-            None => { assert!(false)}
-        }
-        match i3.next() {
-            Some(v) => {
-                match v {
-                    Ok(ok) => { assert_eq!(9, ok); }
-                    Err(_) => {}
-                }
-            },
-            None => { assert!(false)}
-        }
-        match i3.next() {
-            Some(_) => { assert!(false) },
-            None => { assert!(true)}
-        }
-        match i3.next() {
-            Some(_) => { assert!(false) },
-            None => { assert!(true)}
-        }
+        let i3 = islice(iter_from_vec(v3), 3, 11, 3);
+        let ret = extract_value_from_result_vec(i3.collect::<Vec<_>>());
+        assert_eq!(vec![3,6,9], ret.0);
+
     }
 
     // #[test]
