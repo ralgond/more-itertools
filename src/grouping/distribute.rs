@@ -5,17 +5,25 @@ use crate::error::Error;
 use crate::sequence::Sequence;
 
 #[allow(dead_code)]
-struct DistributeInner<T> {
+struct DistributeInner<T> 
+where
+T: Clone + PartialEq + 'static
+{
     pub(crate) buf: Box<dyn Sequence<T>>,
     pub(crate) bucket_count: usize,
 }
 
-pub struct Distribute<T> {
+pub struct Distribute<T> 
+where
+T: Clone + PartialEq + 'static
+{
     inner: Rc<DistributeInner<T>>
 }
 
 #[allow(dead_code)]
 pub struct Cursor<T>
+where
+T: Clone + PartialEq + 'static
 {
     dist_inner: Rc<DistributeInner<T>>,
     cur: usize,
@@ -49,7 +57,7 @@ T: Clone + PartialEq
 
 impl<T> Distribute<T> 
 where
-T: Clone
+T: Clone + PartialEq + 'static
 {
     pub fn new(buf: Box<dyn Sequence<T>>, bucket_count: usize) -> Self {
         let inner = DistributeInner {
@@ -64,28 +72,24 @@ T: Clone
         return ret;
     }
 
-    pub fn iter_cnt(&self) -> usize {
-        return self.inner.bucket_count;
-    }
+    pub fn iter(&self, bucket_no: usize) -> Box<dyn Iterator<Item = Result<T, Error>>> {
+        
+        let iter: Box<dyn Iterator<Item = Result<T, Error>>> = Box::new(Cursor {
+                dist_inner: Rc::clone(&self.inner),
+                cur: bucket_no,
+                step: self.inner.bucket_count
+            });
 
-    pub fn iter(&self, bucket_no: usize) -> Cursor<T> {
-        assert!(bucket_no < self.inner.bucket_count);
-
-        let ret = Cursor {
-            dist_inner: Rc::clone(&self.inner),
-            cur: bucket_no,
-            step: self.inner.bucket_count
-        };
-
-        return ret;
+        return iter;
     }
 }
 
-pub fn distribute<T>(buf: Box<dyn Sequence<T>>, bucket_cnt: usize) -> Distribute<T> 
+pub fn distribute<T>(buf: Box<dyn Sequence<T>>, bucket_cnt: usize) -> Distribute<T>
 where
-T: Clone
+T: Clone + PartialEq + 'static
 {
-    return Distribute::new(buf, bucket_cnt);
+    let dist = Distribute::new(buf, bucket_cnt);
+    return dist;
 }
 
 
@@ -98,7 +102,7 @@ mod tests {
     #[test]
     fn test1() {
         let v = create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]);
-        let dist: Distribute<i32> = distribute(v, 3);
+        let dist = distribute(v, 3);
 
         let mut cur_0 = dist.iter(0);
         assert_eq!(1, cur_0.next().unwrap().ok().unwrap());
@@ -111,9 +115,9 @@ mod tests {
     #[test]
     fn test2() {
         let v = create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]);
-        let dist: Distribute<i32> = distribute(v, 3);
+        let dist = distribute(v, 3);
 
-        let mut cur_0 = dist.iter(0);
+        let mut cur_0: Box<dyn Iterator<Item = Result<i32, Error>>> = dist.iter(0);
         let mut cur_1 = dist.iter(1);
         let mut cur_2 = dist.iter(2);
         assert_eq!(1, cur_0.next().unwrap().ok().unwrap());
@@ -140,7 +144,7 @@ mod tests {
     #[test]
     fn test3() {
         let v = create_seq_from_vec(vec![1,2,3]);
-        let dist: Distribute<i32> = distribute(v, 5);
+        let dist = distribute(v, 5);
 
         let mut cur_0 = dist.iter(0);
         let mut cur_1 = dist.iter(1);

@@ -1,26 +1,21 @@
-use std::fmt::Debug;
 use std::collections::LinkedList;
 
-#[derive(Debug, Clone)]
-struct SplitWhenOutputItem<I: Iterator> {
-    items: Vec<I::Item>
-    
+struct SplitWhenOutputItem<T> {
+    items: Vec<T>
 }
 
-#[derive(Debug, Clone)]
-pub struct SplitWhen<I: Iterator> {
-    ret_buf: LinkedList<SplitWhenOutputItem<I>>,
-    iter: I,
-    pred: fn(& I::Item, & I::Item) -> bool,
+pub struct SplitWhen<T> {
+    ret_buf: LinkedList<SplitWhenOutputItem<T>>,
+    iter: Box<dyn Iterator<Item = T>>,
+    pred: fn(&T, &T) -> bool,
     maxsplit: i128,
     splited: usize,
     iter_finished: bool
 }
 
-impl<I: Iterator> Iterator for SplitWhen<I> 
-where I::Item: Debug
+impl<T> Iterator for SplitWhen<T>
 {
-    type Item = Vec<<I as Iterator>::Item>;
+    type Item = Vec<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.maxsplit == 0 {
@@ -106,15 +101,15 @@ where I::Item: Debug
     }
 }
 
-pub fn split_when<I>(iter: I, pred: fn(&I::Item, &I::Item)->bool, maxsplit: i128) -> SplitWhen<I>
+pub fn split_when<T>(iter: Box<dyn Iterator<Item = T>>, pred: fn(&T, &T)->bool, maxsplit: i128) -> Box<dyn Iterator<Item = Vec<T>>>
 where
-    I: Iterator,
+T: 'static
 {
     let mut ret = SplitWhen {
         ret_buf: LinkedList::new(),
-        iter: iter,
-        pred: pred,
-        maxsplit: maxsplit,
+        iter,
+        pred,
+        maxsplit,
         splited: 0,
         iter_finished: false
     };
@@ -123,43 +118,45 @@ where
         items: Vec::new()
     });
 
-    return ret;
+    return Box::new(ret);
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1, 2, 3, 3, 2, 5, 2, 4, 2];
-        let sw = split_when(v.into_iter(), |x, y| { y > x }, -1);
+        let sw = split_when(iter_from_vec(v), |x, y| { y > x }, -1);
         let ret = sw.collect::<Vec<_>>();
         assert_eq!(vec![vec![1, 2, 3, 3], vec![2, 5], vec![2, 4], vec![2]], ret);
 
 
         let v = vec![1, 2, 3, 3, 2, 5, 2, 4, 2];
-        let sw = split_when(v.into_iter(), |x, y| { y > x }, 2);
+        let sw = split_when(iter_from_vec(v), |x, y| { y > x }, 2);
         let ret = sw.collect::<Vec<_>>();
         assert_eq!(vec![vec![1, 2, 3, 3], vec![2, 5], vec![2, 4, 2]], ret);
 
         let v = vec![1, 2, 3, 3, 2, 5, 2, 4, 2];
-        let sw = split_when(v.into_iter(), |x, y| { y > x }, 10);
+        let sw = split_when(iter_from_vec(v), |x, y| { y > x }, 10);
         let ret = sw.collect::<Vec<_>>();
         assert_eq!(vec![vec![1, 2, 3, 3], vec![2, 5], vec![2, 4], vec![2]], ret);
 
         let v = vec![1, 2, 3, 3, 2, 5, 2, 4, 2];
-        let sw = split_when(v.into_iter(), |x, y| { y > x }, 0);
+        let sw = split_when(iter_from_vec(v), |x, y| { y > x }, 0);
         let ret = sw.collect::<Vec<_>>();
         assert_eq!(vec![vec![1, 2, 3, 3, 2, 5, 2, 4, 2]], ret);
 
         let v = vec![1,2];
-        let sw = split_when(v.into_iter(), |x, y| { y > x }, -1);
+        let sw = split_when(iter_from_vec(v), |x, y| { y > x }, -1);
         let ret = sw.collect::<Vec<_>>();
         assert_eq!(vec![vec![1,2]], ret);
 
         let v = vec![2,1];
-        let sw = split_when(v.into_iter(), |x, y| { y > x }, -1);
+        let sw = split_when(iter_from_vec(v), |x, y| { y > x }, -1);
         let ret = sw.collect::<Vec<_>>();
         assert_eq!(vec![vec![2], vec![1]], ret);
     }

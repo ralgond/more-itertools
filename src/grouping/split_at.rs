@@ -1,17 +1,14 @@
-use std::fmt::Debug;
 use std::collections::LinkedList;
 
-#[derive(Debug, Clone)]
-struct SplitAtOutputItem<I: Iterator> {
+struct SplitAtOutputItem<T> {
     is_sep: bool,
-    items: Vec<I::Item>
+    items: Vec<T>
 }
 
-#[derive(Debug, Clone)]
-pub struct SplitAt<I: Iterator> {
-    ret_buf: LinkedList<SplitAtOutputItem<I>>,
-    iter: I,
-    pred: fn(&I::Item) -> bool,
+pub struct SplitAt<T> {
+    ret_buf: LinkedList<SplitAtOutputItem<T>>,
+    iter: Box<dyn Iterator<Item = T>>,
+    pred: fn(&T) -> bool,
     maxsplit: i64,
     keep_separator: bool,
     splited: i64,
@@ -19,10 +16,9 @@ pub struct SplitAt<I: Iterator> {
 }
 
 
-impl<I: Iterator> Iterator for SplitAt<I> 
-where I::Item: Debug
+impl<T> Iterator for SplitAt<T> 
 {
-    type Item = Vec<<I as Iterator>::Item>;
+    type Item = Vec<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.maxsplit == 0 {
@@ -119,9 +115,9 @@ where I::Item: Debug
     }
 }
 
-pub fn split_at<I>(iter: I, pred: fn(&I::Item)->bool, maxsplit: i64, keep_separator: bool) -> SplitAt<I>
+pub fn split_at<T>(iter: Box<dyn Iterator<Item = T>>, pred: fn(&T)->bool, maxsplit: i64, keep_separator: bool) -> Box<dyn Iterator<Item=Vec<T>>>
 where
-    I: Iterator,
+T: 'static
 {
     let mut ret = SplitAt {
         ret_buf: LinkedList::new(),
@@ -138,17 +134,19 @@ where
         items: Vec::new()
     });
 
-    return ret;
+    return Box::new(ret);
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec!['a','a','a'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, -1, true);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, true);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec![], vec!['a'], vec![], vec!['a'], vec![], vec!['a'], vec![]], ret);
         // println!("{:?}", sa.next());
@@ -157,33 +155,33 @@ mod tests {
         // println!("{:?}", sa.next());
 
         let v = vec!['a','a','a'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, -1, false);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![Vec::<char>::new(), vec![], vec![], vec![]], ret);
 
 
         let v = vec!['a','a','a'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, 0, false);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 0, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['a','a','a']], ret);
 
         let v = vec!['b', 'a','b', 'a', 'b', 'a'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, -1, false);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['b'], vec!['b'], vec![]], ret);
 
         let v = vec!['b', 'a', 'b', 'a', 'b', 'a', 'b'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, -1, false);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['b'], vec!['b'], vec!['b']], ret);
 
         let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, -1, false);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b'], vec!['b', 'c']], ret);
 
         let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, -1, true);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, true);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['a'], vec!['b'], vec!['a'], vec!['b', 'b'], vec!['a'], vec!['b', 'c']], ret);
     }
@@ -191,22 +189,22 @@ mod tests {
     #[test]
     pub fn test2() {
         let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, 2, true);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 2, true);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['a'], vec!['b'], vec!['a'], vec!['b', 'b', 'a', 'b', 'c']], ret);
 
         let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, 2, false);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 2, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b', 'a', 'b', 'c']], ret);
 
         let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, 10, false);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 10, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b'], vec!['b', 'c']], ret);
 
         let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c', 'a'];
-        let sa = split_at(v.into_iter(), |x| { *x == 'a' }, 10, false);
+        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 10, false);
         let ret = sa.collect::<Vec<_>>();
         assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b'], vec!['b', 'c'], vec![]], ret);
     }

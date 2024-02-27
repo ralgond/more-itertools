@@ -1,5 +1,6 @@
 use crate::error::Error;
 use crate::error;
+use crate::sequence::Sequence;
 
 #[derive(PartialEq)]
 pub enum IncompleteType {
@@ -9,7 +10,7 @@ pub enum IncompleteType {
 }
 
 pub struct Grouper<T> {
-    buf: Vec<T>,
+    buf: Box<dyn Sequence<T>>,
     n: usize,
     incomplete: IncompleteType,
     fillvalue: Option<T>,
@@ -46,7 +47,7 @@ T: Clone
             }
             cnt += 1;
 
-            ret.push(self.buf[self.cur].clone());
+            ret.push(self.buf.get(self.cur).unwrap().clone());
             self.cur += 1;
         }
 
@@ -73,25 +74,29 @@ T: Clone
     }
 }
 
-pub fn grouper<T>(buf: Vec<T>, n: usize, incomplete: IncompleteType, fillvalue: Option<T>) -> Grouper<T> {
-    Grouper {
-        buf: buf,
+pub fn grouper<T>(seq: Box<dyn Sequence<T>>, n: usize, incomplete: IncompleteType, fillvalue: Option<T>) -> Box<dyn Iterator<Item = Result<Vec<T>,Error>>>
+where T: Clone + 'static
+{
+    Box::new(Grouper {
+        buf: seq,
         n: n,
         incomplete: incomplete,
         fillvalue: fillvalue,
         cur: 0
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::sequence::create_seq_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3,4,5,6,7,8,9,10];
 
-        let mut g = grouper(v, 3, IncompleteType::Fill, Some(0));
+        let mut g = grouper(create_seq_from_vec(v), 3, IncompleteType::Fill, Some(0));
         assert_eq!(vec![1,2,3], g.next().unwrap().ok().unwrap());
         assert_eq!(vec![4,5,6], g.next().unwrap().ok().unwrap());
         assert_eq!(vec![7,8,9], g.next().unwrap().ok().unwrap());
@@ -99,7 +104,7 @@ mod tests {
 
         let v = vec![1,2,3,4,5,6,7,8,9,10];
 
-        let mut g = grouper(v, 3, IncompleteType::Ignore, Some(0));
+        let mut g = grouper(create_seq_from_vec(v), 3, IncompleteType::Ignore, Some(0));
         assert_eq!(vec![1,2,3], g.next().unwrap().ok().unwrap());
         assert_eq!(vec![4,5,6], g.next().unwrap().ok().unwrap());
         assert_eq!(vec![7,8,9], g.next().unwrap().ok().unwrap());
@@ -108,7 +113,7 @@ mod tests {
 
         let v = vec![1,2,3,4,5,6,7,8,9,10];
 
-        let mut g = grouper(v, 3, IncompleteType::Strict, Some(0));
+        let mut g = grouper(create_seq_from_vec(v), 3, IncompleteType::Strict, Some(0));
         assert_eq!(vec![1,2,3], g.next().unwrap().ok().unwrap());
         assert_eq!(vec![4,5,6], g.next().unwrap().ok().unwrap());
         assert_eq!(vec![7,8,9], g.next().unwrap().ok().unwrap());

@@ -21,7 +21,7 @@ pub struct Divide<T> {
 
 impl<T> Divide<T> 
 where
-T: Clone
+T: Clone + 'static
 {
     pub fn new(buf: Box<dyn Sequence<T>>, bucket_count: usize) -> Divide<T> {
         let mut _len_vec = Vec::new();
@@ -67,18 +67,18 @@ T: Clone
         return self.inner.n;
     }
 
-    pub fn iter(&self, bucket_no: usize) -> Cursor<T> {
+    pub fn iter(&self, bucket_no: usize) -> Box<dyn Iterator<Item = Result<T, Error>>> {
         assert!(bucket_no < self.inner.len_vec.len() - 1);
         let start = self.inner.len_vec[bucket_no];
         let end = self.inner.len_vec[bucket_no+1];
 
-        let ret = Cursor {
+        let ret: Box<dyn Iterator<Item = Result<T, Error>>> = Box::new(Cursor {
             inner: Rc::clone(&self.inner),
             cur: start,
             end: end,
             bucket_count: self.inner.n,
             accumulate_overflow: self.inner.accumulate_overflow
-        };
+        });
 
         return ret;
     }
@@ -86,7 +86,7 @@ T: Clone
 
 pub fn divide<T>(buf: Box<dyn Sequence<T>>, bucket_cnt: usize) -> Divide<T>
 where
-T: Clone
+T: Clone + 'static
 {
     return Divide::new(buf, bucket_cnt);
 }
@@ -149,9 +149,9 @@ mod tests {
     fn test1() {
         let v = vec![1,2,3,4,5,6,7,8,9,10];
         let seq = create_seq_from_vec(v);
-        let dist = divide(seq, 3);
+        let div = divide(seq, 3);
 
-        let mut cur_0 = dist.iter(0);
+        let mut cur_0 = div.iter(0);
         assert_eq!(1, cur_0.next().unwrap().ok().unwrap());
         assert_eq!(2, cur_0.next().unwrap().ok().unwrap());
         assert_eq!(3, cur_0.next().unwrap().ok().unwrap());
@@ -159,13 +159,13 @@ mod tests {
         assert_eq!(None, cur_0.next());
 
 
-        let mut cur_1 = dist.iter(1);
+        let mut cur_1 = div.iter(1);
         assert_eq!(5, cur_1.next().unwrap().ok().unwrap());
         assert_eq!(6, cur_1.next().unwrap().ok().unwrap());
         assert_eq!(7, cur_1.next().unwrap().ok().unwrap());
         assert_eq!(None, cur_0.next());
 
-        let mut cur_2 = dist.iter(2);
+        let mut cur_2 = div.iter(2);
         assert_eq!(8, cur_2.next().unwrap().ok().unwrap());
         assert_eq!(9, cur_2.next().unwrap().ok().unwrap());
         assert_eq!(10, cur_2.next().unwrap().ok().unwrap());
@@ -175,9 +175,9 @@ mod tests {
     #[test]
     fn test2() {
         let v = create_seq_from_vec(vec![1,2,3,4,5,6,7,8,9,10]);
-        let dist = divide(v, 3);
+        let div = divide(v, 3);
 
-        let mut cur_0 = dist.iter(0);
+        let mut cur_0 = div.iter(0);
         println!("{:?}", cur_0.next());
     }
 }

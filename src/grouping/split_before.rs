@@ -18,17 +18,17 @@ struct SplitBeforeItem<T> {
 //     }
 // }
 
-pub struct SplitBefore<I: Iterator> {
-    output_item_list: LinkedList<SplitBeforeItem<I::Item>>,
-    iter: I,
-    pred: fn(&I::Item) -> bool,
+pub struct SplitBefore<T> {
+    output_item_list: LinkedList<SplitBeforeItem<T>>,
+    iter: Box<dyn Iterator<Item = T>>,
+    pred: fn(&T) -> bool,
     split_cnt: usize,
     maxsplit: i128,
     iter_finished: bool
 }
 
-impl<I: Iterator> Iterator for SplitBefore<I> {
-    type Item = Result<Vec<<I as Iterator>::Item>, Error>;
+impl<T> Iterator for SplitBefore<T> {
+    type Item = Result<Vec<T>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -109,32 +109,34 @@ impl<I: Iterator> Iterator for SplitBefore<I> {
     }
 }
 
-pub fn split_before<I>(into_iter_able: I, 
-    pred: fn(&I::Item) -> bool,
+pub fn split_before<T>(iter: Box<dyn Iterator<Item = T>>, 
+    pred: fn(&T) -> bool,
     maxsplit: i128
-) -> SplitBefore<I::IntoIter>
+) -> Box<dyn Iterator<Item = Result<Vec<T>, Error>>>
 where 
-I: IntoIterator
+T: 'static
 {
-    SplitBefore {
+    Box::new(SplitBefore {
         output_item_list: LinkedList::new(),
-        iter: into_iter_able.into_iter(),
-        pred: pred,
+        iter,
+        pred,
         split_cnt: 0,
-        maxsplit: maxsplit,
+        maxsplit,
         iter_finished: false
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
+
+    use crate::itertools::iter::iter_from_vec;
 
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![0,1,2,3,4,5,6,7,8,9];
-        let mut r = split_before(v, |x|{x%3==0}, -1);
+        let mut r = split_before(iter_from_vec(v), |x|{x%3==0}, -1);
         assert_eq!(Some(Ok(vec![0,1,2])), r.next());
         assert_eq!(Some(Ok(vec![3,4,5])), r.next());
         assert_eq!(Some(Ok(vec![6,7,8])), r.next());
@@ -143,7 +145,7 @@ mod tests {
         assert_eq!(None, r.next());
 
         let v = vec![0,1,2,3,4,5,6,7,8,9];
-        let mut r = split_before(v, |x|{x%3==0}, 2);
+        let mut r = split_before(iter_from_vec(v), |x|{x%3==0}, 2);
         assert_eq!(Some(Ok(vec![0,1,2])), r.next());
         assert_eq!(Some(Ok(vec![3,4,5])), r.next());
         assert_eq!(Some(Ok(vec![6,7,8,9])), r.next());
@@ -151,7 +153,7 @@ mod tests {
         assert_eq!(None, r.next());
 
         let v = vec![0,0,0];
-        let mut r = split_before(v, |x|{x%3==0}, -1);
+        let mut r = split_before(iter_from_vec(v), |x|{x%3==0}, -1);
         assert_eq!(Some(Ok(vec![0])), r.next());
         assert_eq!(Some(Ok(vec![0])), r.next());
         assert_eq!(Some(Ok(vec![0])), r.next());
@@ -159,13 +161,13 @@ mod tests {
         assert_eq!(None, r.next());
 
         let v = vec![1,1,1];
-        let mut r = split_before(v, |x|{x%3==0}, -1);
+        let mut r = split_before(iter_from_vec(v), |x|{x%3==0}, -1);
         assert_eq!(Some(Ok(vec![1,1,1])), r.next());
         assert_eq!(None, r.next());
         assert_eq!(None, r.next());
 
         let v = vec![1,1,1];
-        let mut r = split_before(v, |x|{x%3==0}, 2);
+        let mut r = split_before(iter_from_vec(v), |x|{x%3==0}, 2);
         assert_eq!(Some(Ok(vec![1,1,1])), r.next());
         assert_eq!(None, r.next());
         assert_eq!(None, r.next());

@@ -1,26 +1,22 @@
-use std::{collections::LinkedList, fmt::Debug};
+use std::collections::LinkedList;
 
-#[derive(Debug, Clone)]
-struct SplitIntoOutputItem<I: Iterator> {
-    items: Vec<I::Item>,
+struct SplitIntoOutputItem<T> {
+    items: Vec<T>,
     size: usize,
     finished: bool
 }
 
-#[derive(Debug, Clone)]
-pub struct SplitInto<I: Iterator>
-where I::Item: Debug + Clone
+pub struct SplitInto<T>
 {
-    ret_buf: LinkedList<SplitIntoOutputItem<I>>,
-    iter: I,
+    ret_buf: LinkedList<SplitIntoOutputItem<T>>,
+    iter: Box<dyn Iterator<Item = T>>,
     sizes: Vec<usize>,
     iter_finished: bool
 }
 
-impl<I: Iterator> Iterator for SplitInto<I> 
-where I::Item: Debug + Clone
+impl<T> Iterator for SplitInto<T>
 {
-    type Item = Vec<<I as Iterator>::Item>;
+    type Item = Vec<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -69,14 +65,13 @@ where I::Item: Debug + Clone
     }
 }
 
-pub fn split_into<I>(iter: I, sizes: Vec<usize>) -> SplitInto<I>
+pub fn split_into<T>(iter: Box<dyn Iterator<Item = T>>, sizes: Vec<usize>) -> Box<dyn Iterator<Item = Vec<T>>>
 where
-    I: Iterator,
-    I::Item: Debug + Clone
+T: 'static
 {
     let mut ret = SplitInto {
         ret_buf: LinkedList::new(),
-        iter: iter,
+        iter,
         sizes: sizes.clone(),
         iter_finished: false
     };
@@ -89,39 +84,41 @@ where
         });
     }
 
-    return ret;
+    return Box::new(ret);
 }
 
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3,4,5,6];
         let sizes = vec![1,2,3];
-        let si = split_into(v.into_iter(), sizes);
+        let si = split_into(iter_from_vec(v), sizes);
         let ret = si.collect::<Vec<_>>();
         assert_eq!(vec![vec![1], vec![2, 3], vec![4, 5, 6]], ret);
 
         let v = vec![1,2,3,4,5,6];
         let sizes = vec![2,3];
-        let si = split_into(v.into_iter(), sizes);
+        let si = split_into(iter_from_vec(v), sizes);
         let ret = si.collect::<Vec<_>>();
         // println!("{:?}", ret);
         assert_eq!(vec![vec![1, 2], vec![3, 4, 5]], ret);
 
         let v = vec![1,2,3,4];
         let sizes = vec![1,2,3,4];
-        let si = split_into(v.into_iter(), sizes);
+        let si = split_into(iter_from_vec(v), sizes);
         let ret = si.collect::<Vec<_>>();
         // println!("{:?}", ret);
         assert_eq!(vec![vec![1], vec![2, 3], vec![4], vec![]], ret);
 
         let v = vec![1,2,3,4];
         let sizes = vec![1,2,0,3,4];
-        let si = split_into(v.into_iter(), sizes);
+        let si = split_into(iter_from_vec(v), sizes);
         let ret = si.collect::<Vec<_>>();
         // println!("{:?}", ret);
         assert_eq!(vec![vec![1], vec![2, 3], vec![], vec![4], vec![]], ret);
