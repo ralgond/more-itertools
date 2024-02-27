@@ -9,3 +9,5 @@ pub mod tee;
 pub mod map;
 
 pub mod iter;
+
+pub mod zip;

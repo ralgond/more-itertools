@@ -33,7 +33,7 @@ pub fn any(v: &Vec<bool>) -> bool {
 }
 
 
-pub fn any_result(v: &Result<Vec<bool>, Error>) -> bool {
+pub fn any_result(v: Result<Vec<bool>, Error>) -> bool {
     if v.is_err() {
         return false;
     }
