@@ -17,19 +17,20 @@ impl<T> ReplaceOutputItem<T> {
     }
 }
 
-pub struct Replace<I: Iterator> {
-    output_item_list: LinkedList<ReplaceOutputItem<I::Item>>,
-    query: Vec<I::Item>,
-    substitutes: Vec<I::Item>,
-    buf: VecDeque<I::Item>,
-    iter: I,
+pub struct Replace<T> {
+    output_item_list: LinkedList<ReplaceOutputItem<T>>,
+    query: Vec<T>,
+    substitutes: Vec<T>,
+    buf: VecDeque<T>,
+    iter: Box<dyn Iterator<Item = T>>,
     iter_finished: bool
 }
 
-impl<I: Iterator> Iterator for Replace<I> 
-where <I as Iterator>::Item: PartialEq + Clone
+impl<T> Iterator for Replace<T> 
+where
+T: PartialEq + Clone
 {
-    type Item = Result<<I as Iterator>::Item, Error>;
+    type Item = Result<T, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.query.len() == 0 {
@@ -116,32 +117,34 @@ where <I as Iterator>::Item: PartialEq + Clone
     }
 }
 
-pub fn replace<I> (
-    query: Vec<I::Item>,
-    substitutes: Vec<I::Item>,
-    into_iter_able: I
-) -> Replace<I::IntoIter>
+pub fn replace<T> (
+    query: Vec<T>,
+    substitutes: Vec<T>,
+    iter: Box<dyn Iterator<Item = T>>
+) -> Replace<T>
 where 
-I: IntoIterator
+T: 'static
 {
     Replace {
         output_item_list: LinkedList::new(),
-        query: query,
-        substitutes: substitutes,
+        query,
+        substitutes,
         buf: VecDeque::new(),
         iter_finished: false,
-        iter: into_iter_able.into_iter()
+        iter
     }
 }
 
 #[cfg(test)]
 mod tests {
 
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
-        let mut r = replace(vec![1,1,1], vec![3,4], vec![1,1,1,1,1]);
+        let mut r = replace(vec![1,1,1], vec![3,4], iter_from_vec(vec![1,1,1,1,1]));
         assert_eq!(Some(Ok(3)), r.next());
         assert_eq!(Some(Ok(4)), r.next());
         assert_eq!(Some(Ok(1)), r.next());
@@ -150,7 +153,7 @@ mod tests {
         assert_eq!(None, r.next());
 
 
-        let mut r = replace(vec![1,2,5], vec![3,4], vec![0, 1, 2, 5, 0, 1, 2, 5]);
+        let mut r = replace(vec![1,2,5], vec![3,4], iter_from_vec(vec![0, 1, 2, 5, 0, 1, 2, 5]));
         assert_eq!(Some(Ok(0)), r.next());
         assert_eq!(Some(Ok(3)), r.next());
         assert_eq!(Some(Ok(4)), r.next());
@@ -159,7 +162,7 @@ mod tests {
         assert_eq!(Some(Ok(4)), r.next());
         assert_eq!(None, r.next());
 
-        let mut r = replace(vec![0,1,2], vec![3,4], vec![0, 1, 2, 5, 0, 1, 2, 5]);
+        let mut r = replace(vec![0,1,2], vec![3,4], iter_from_vec(vec![0, 1, 2, 5, 0, 1, 2, 5]));
         
         assert_eq!(Some(Ok(3)), r.next());
         assert_eq!(Some(Ok(4)), r.next());
