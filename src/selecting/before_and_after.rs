@@ -1,18 +1,18 @@
-pub struct BeforeAndAfter<'a, I>
+pub struct BeforeAndAfter<T>
 where
-I: Clone
+T: Clone
 {
-    before: Vec<I>,
-    the_one: Option<I>,
+    before: Vec<T>,
+    the_one: Option<T>,
     consumed_the_one: bool,
-    after: Option<Box<dyn 'a + Iterator<Item=I>>>,
+    after: Option<Box<dyn Iterator<Item=T>>>,
 }
 
-impl<'a, I> Iterator for BeforeAndAfter<'a, I>    
+impl<T> Iterator for BeforeAndAfter<T>    
 where
-I: Clone
+T: Clone
 {
-    type Item = I;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.consumed_the_one {
@@ -34,9 +34,9 @@ I: Clone
 }
 
 
-pub fn before_and_after<'a, I> (iterable: Box<dyn 'a + Iterator<Item=I>>, predicate: fn(item: &I)->bool) -> BeforeAndAfter<'a, I>
+pub fn before_and_after<T> (iterable: Box<dyn Iterator<Item=T>>, predicate: fn(item: &T)->bool) -> BeforeAndAfter<T>
 where
-    I: Clone,
+    T: Clone,
 {
     let mut ret = BeforeAndAfter {
         before: Vec::new(),
@@ -68,12 +68,14 @@ where
 #[cfg(test)]
 mod tests {
 
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v1 = String::from("ABCdEfGhI");
-        let baa = before_and_after(Box::new(v1.chars()), |x: &char| { x.is_ascii_uppercase() });
+        let baa = before_and_after(iter_from_vec(v1.chars().collect()), |x: &char| { x.is_ascii_uppercase() });
 
         assert_eq! (vec!['A', 'B', 'C'], baa.before);
 

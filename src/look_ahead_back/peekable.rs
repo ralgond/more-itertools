@@ -1,15 +1,13 @@
 use std::collections::VecDeque;
 
-#[derive(Debug, Clone)]
-pub struct Peekable<I: Iterator> {
-    buf: VecDeque<I::Item>,
-    iter: I
+pub struct Peekable<T> {
+    buf: VecDeque<T>,
+    iter: Box<dyn Iterator<Item = T>>
 }
 
-impl<I> Iterator for Peekable<I>
-where
-    I: Iterator, {
-    type Item = <I as Iterator>::Item;
+impl<T> Iterator for Peekable<T>
+{
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.buf.len() == 0 {
@@ -24,9 +22,9 @@ where
     }
 }
 
-impl<I: Iterator> Peekable<I> {
+impl<T> Peekable<T> {
 
-    pub fn peek(&mut self) -> Option<&I::Item> {
+    pub fn peek(&mut self) -> Option<&T> {
         match self.buf.pop_front() {
             None => {
                 match self.iter.next() {
@@ -44,7 +42,7 @@ impl<I: Iterator> Peekable<I> {
         return self.buf.front();
     }
 
-    pub fn prepend(&mut self, args: Vec<I::Item>) {
+    pub fn prepend(&mut self, args: Vec<T>) {
         for item in args.into_iter().rev() {
             self.buf.push_front(item);
         }
@@ -52,23 +50,25 @@ impl<I: Iterator> Peekable<I> {
 }
 
 /// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#peekable
-pub fn peekable<I>(iterable: I) -> Peekable<I::IntoIter>
+pub fn peekable<T>(iter: Box<dyn Iterator<Item = T>>) -> Peekable<T>
 where
-    I: IntoIterator,
+T: 'static
 {
     Peekable {
         buf: VecDeque::new(),
-        iter: iterable.into_iter()
+        iter
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1_peek_1() {
-        let mut ret = peekable([1,2,3]);
+        let mut ret = peekable(iter_from_vec(vec![1,2,3]));
    
         assert_eq!(ret.peek(), Some(&1));
         assert_eq!(ret.peek(), Some(&1));
@@ -86,18 +86,11 @@ mod tests {
 
     #[test]
     fn test2_prepend_1() {
-        let mut p = peekable([1, 2, 3]);
+        let mut p = peekable(iter_from_vec(vec![1, 2, 3]));
         p.prepend(vec![10, 11, 12]);
 
-        match p.next() {
-            Some(v) => { assert_eq!(v, 10); }
-            None => {}
-        }
-
-        match p.peek() {
-            Some(v) => { assert_eq!(*v, 11); }
-            None => {}
-        }
+        assert_eq!(p.next().unwrap(), 10);
+        assert_eq!(p.peek().unwrap(), &11);
 
         let v = p.collect::<Vec<_>>();
         assert_eq!(v, [11, 12, 1, 2, 3]);

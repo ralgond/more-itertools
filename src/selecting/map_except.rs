@@ -1,17 +1,15 @@
 use crate::error::Error;
 use crate::error;
 
-#[derive(Debug, Clone)]
-#[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub struct MapExcept<I: Iterator, T> {
+pub struct MapExcept<I, T> {
     // cur: usize,
-    iter: I,
-    func: fn(item: &I::Item) -> Result<T, Error>,
+    iter: Box<dyn Iterator<Item = I>>,
+    func: fn(item: &I) -> Result<T, Error>,
     acceptable_except: Vec<error::Kind>,
     failed: bool
 }
 
-impl<I: Iterator, T> Iterator for MapExcept<I, T> {
+impl<I, T> Iterator for MapExcept<I, T> {
     type Item = Result<T, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -48,29 +46,32 @@ impl<I: Iterator, T> Iterator for MapExcept<I, T> {
 
 }
 
-pub fn filter_map<I, T>(iterable: I, 
-    func: fn(item: &I::Item) -> Result<T, Error>,
-    acceptable_except: Vec<error::Kind>) -> MapExcept<I::IntoIter, T> 
+pub fn map_except<I, T>(iter: Box<dyn Iterator<Item = I>>, 
+    func: fn(item: &I) -> Result<T, Error>,
+    acceptable_except: Vec<error::Kind>) -> Box<dyn Iterator<Item = Result<T, Error>>> 
 where
-I: IntoIterator,
+I: 'static,
+T: 'static
 {  
-    MapExcept {
+    Box::new(MapExcept {
         // cur: 0,
-        iter: iterable.into_iter(),
-        func: func,
-        acceptable_except: acceptable_except,
+        iter,
+        func,
+        acceptable_except,
         failed: false
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let iterable = vec!["1", "2", "three", "4", "5"];
-        let mut fm = filter_map(iterable,
+        let mut fm = map_except(iter_from_vec(iterable),
             |x| {
                 let ret = x.parse::<i32>();
                 match ret {
@@ -81,61 +82,19 @@ mod tests {
             vec![error::Kind::ValueError]
         );
 
-        match fm.next() {
-            Some(v) => {
-                match v {
-                    Ok(v2) => { assert_eq!(1, v2) }
-                    Err(_) => { assert!(false); }
-                }
-            },
-            None => {}
-        }
-
-        match fm.next() {
-            Some(v) => {
-                match v {
-                    Ok(v2) => { assert_eq!(2, v2) }
-                    Err(_) => { assert!(false); }
-                }
-            },
-            None => {}
-        }
-
-        match fm.next() {
-            Some(v) => {
-                match v {
-                    Ok(v2) => { assert_eq!(4, v2) }
-                    Err(_) => { assert!(false); }
-                }
-            },
-            None => {}
-        }
-
-        match fm.next() {
-            Some(v) => {
-                match v {
-                    Ok(v2) => { assert_eq!(5, v2) }
-                    Err(_) => { assert!(false); }
-                }
-            },
-            None => {}
-        }
-
-        match fm.next() {
-            Some(_) => { assert!(false);},
-            None => { assert!(true); }
-        }
-        match fm.next() {
-            Some(_) => { assert!(false);},
-            None => { assert!(true); }
-        }
+        assert_eq!(1, fm.next().unwrap().ok().unwrap());
+        assert_eq!(2, fm.next().unwrap().ok().unwrap());
+        assert_eq!(4, fm.next().unwrap().ok().unwrap());
+        assert_eq!(5, fm.next().unwrap().ok().unwrap());
+        assert_eq!(None, fm.next());
+        assert_eq!(None, fm.next());
     }
 
 
     #[test]
     fn test2() {
         let iterable = vec!["1", "2", "three", "4", "5"];
-        let mut fm = filter_map(iterable,
+        let mut fm = map_except(iter_from_vec(iterable),
             |x| {
                 let ret = x.parse::<i32>();
                 match ret {
@@ -146,43 +105,10 @@ mod tests {
             vec![]
         );
 
-        match fm.next() {
-            Some(v) => {
-                match v {
-                    Ok(v2) => { assert_eq!(1, v2) }
-                    Err(_) => { assert!(false); }
-                }
-            },
-            None => {}
-        }
-
-        match fm.next() {
-            Some(v) => {
-                match v {
-                    Ok(v2) => { assert_eq!(2, v2) }
-                    Err(_) => { assert!(false); }
-                }
-            },
-            None => {}
-        }
-
-        match fm.next() {
-            Some(v) => {
-                match v {
-                    Ok(_) => { assert!(false); }
-                    Err(_) => { assert!(true); }
-                }
-            },
-            None => {}
-        }
-
-        match fm.next() {
-            Some(_) => { assert!(false);},
-            None => { assert!(true); }
-        }
-        match fm.next() {
-            Some(_) => { assert!(false);},
-            None => { assert!(true); }
-        }
+        assert_eq!(1, fm.next().unwrap().ok().unwrap());
+        assert_eq!(2, fm.next().unwrap().ok().unwrap());
+        assert_eq!(error::Kind::ValueError, fm.next().unwrap().err().unwrap().kind());
+        assert_eq!(None, fm.next());
+        assert_eq!(None, fm.next());
     }
 }

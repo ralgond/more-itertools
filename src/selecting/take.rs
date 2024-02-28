@@ -1,10 +1,8 @@
 
-pub fn take<I>(it: I, n: usize) -> Vec<I::Item> 
+pub fn take<T>(iter: &mut Box<dyn Iterator<Item = T>>, n: usize) -> Vec<T> 
 where
-    I: IntoIterator
+T: 'static
 {
-    let mut iter = it.into_iter();
-
     let mut ret = Vec::new();
 
     for _ in 0..n {
@@ -23,16 +21,18 @@ where
 #[cfg(test)]
 mod tests {
 
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v1 = vec![1,2,3,4,5];
 
-        assert_eq!(vec![1,2,3], take(v1, 3));
+        assert_eq!(vec![1,2,3], take(&mut iter_from_vec(v1), 3));
 
         let v2 = vec![1,2,3,4,5];
 
-        assert_eq!(vec![1,2,3,4,5], take(v2, 10));
+        assert_eq!(vec![1,2,3,4,5], take(&mut iter_from_vec(v2), 10));
     }
 }

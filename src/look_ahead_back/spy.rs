@@ -1,9 +1,8 @@
 /// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#spy
-pub fn spy<I>(iterable: I, n: usize) -> Option<Vec<I::Item>> 
+pub fn spy<T>(iter: &mut Box<dyn Iterator<Item = T>>, n: usize) -> Option<Vec<T>> 
 where
-    I: IntoIterator,
+T: 'static
 {
-    let mut iter = iterable.into_iter();
     let mut ret = Vec::new();
     for _ in 0..n {
         match iter.next() {
@@ -17,32 +16,22 @@ where
 #[cfg(test)]
 mod tests {
     
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3,4,5];
-        match spy(v, 1) {
-            Some(ret) => { assert_eq!(ret, vec![1]); },
-            None => { assert!(false); }
-        }
+        assert_eq!(vec![1], spy(&mut iter_from_vec(v), 1).unwrap());
 
         let v = vec![1,2,3,4,5];
-        match spy(v, 0) {
-            Some(ret) => { assert_eq!(ret, vec![]); },
-            None => { assert!(false); }
-        }
+        assert_eq!(Vec::<i32>::new(), spy(&mut iter_from_vec(v), 0).unwrap());
 
         let v = vec![1,2,3,4,5];
-        match spy(v, 3) {
-            Some(ret) => { assert_eq!(ret, vec![1,2,3]); },
-            None => { assert!(false); }
-        }
+        assert_eq!(vec![1,2,3], spy(&mut iter_from_vec(v), 3).unwrap());
 
         let v = vec![1,2,3,4,5];
-        match spy(v, 7) {
-            Some(ret) => { assert_eq!(ret, vec![1,2,3,4,5]); },
-            None => { assert!(false); }
-        }
+        assert_eq!(vec![1,2,3,4,5], spy(&mut iter_from_vec(v), 7).unwrap());
     }
 }

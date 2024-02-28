@@ -1,21 +1,15 @@
 use std::collections::VecDeque;
 
-pub struct Tail<I>
-where 
-    I: Iterator,
-    I::Item: Clone
- {
-    buf: VecDeque<I::Item>,
-    iter: I,
+pub struct Tail<T>
+{
+    buf: VecDeque<T>,
+    iter: Box<dyn Iterator<Item = T>>,
     n: usize
 }
 
-impl<I> Iterator for Tail<I> 
-where 
-    I: Iterator,
-    I::Item: Clone
+impl<T> Iterator for Tail<T> 
 {
-    type Item = <I as Iterator>::Item;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.n == 0 {
@@ -38,20 +32,21 @@ where
     }
 }
 
-pub fn tail<I>(iterable: I, n: usize) -> Tail<I::IntoIter>
+pub fn tail<T>(iter: Box<dyn Iterator<Item = T>>, n: usize) -> Box<dyn Iterator<Item = T>>
 where
-    I: IntoIterator,
-    I::Item: Clone
+T: 'static
 {
-    Tail {
+    Box::new(Tail {
         buf: VecDeque::new(),
-        iter: iterable.into_iter(),
-        n: n
-    }
+        iter,
+        n
+    })
 }
 
 #[cfg(test)]
 mod tests {
+
+    use crate::itertools::iter::iter_from_vec;
 
     use super::*;
 
@@ -59,7 +54,7 @@ mod tests {
     fn test1() {
         let v = vec![1,2,3,4,5];
 
-        let mut t = tail(v, 3);
+        let mut t = tail(iter_from_vec(v), 3);
         assert_eq!(Some(3), t.next());
         assert_eq!(Some(4), t.next());
         assert_eq!(Some(5), t.next());
@@ -68,7 +63,7 @@ mod tests {
 
         let v = vec![1,2,3,4,5];
 
-        let mut t = tail(v, 7);
+        let mut t = tail(iter_from_vec(v), 7);
         assert_eq!(Some(1), t.next());
         assert_eq!(Some(2), t.next());
         assert_eq!(Some(3), t.next());

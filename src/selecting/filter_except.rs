@@ -1,20 +1,16 @@
-
 use crate::error::Error;
 use crate::error;
 
 
-#[derive(Debug, Clone)]
-#[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub struct FilterExcept<I: Iterator> {
-    // cur: usize,
-    iter: I,
-    validator: fn(item: &I::Item) -> Result<bool, Error>,
+pub struct FilterExcept<T> {
+    iter: Box<dyn Iterator<Item = T>>,
+    validator: fn(item: &T) -> Result<bool, Error>,
     acceptable_except: Vec<error::Kind>,
     failed: bool
 }
 
-impl<I: Iterator> Iterator for FilterExcept<I> {
-    type Item = Result<<I as Iterator>::Item, Error>;
+impl<T> Iterator for FilterExcept<T> {
+    type Item = Result<T, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.failed {
@@ -50,31 +46,33 @@ impl<I: Iterator> Iterator for FilterExcept<I> {
 }
 
 
-pub fn filter_except<I>(iterable: I, 
-                        validator: fn(item: &I::Item) -> Result<bool, Error>,
-                        acceptable_except: Vec<error::Kind>) -> FilterExcept<I::IntoIter> 
+pub fn filter_except<T>(iter: Box<dyn Iterator<Item = T>>, 
+                        validator: fn(item: &T) -> Result<bool, Error>,
+                        acceptable_except: Vec<error::Kind>) -> Box<dyn Iterator<Item = Result<T, Error>>>
 where
-    I: IntoIterator,
+T: 'static
 {
                             
-    FilterExcept {
+    Box::new(FilterExcept {
         // cur: 0,
-        iter: iterable.into_iter(),
-        validator: validator,
-        acceptable_except: acceptable_except,
+        iter,
+        validator,
+        acceptable_except,
         failed: false
-    }
+    })
 }
 
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let iterable = vec!["1", "2", "three", "4", "5"];
-        let mut fe = filter_except(iterable, 
+        let mut fe = filter_except(iter_from_vec(iterable), 
             |x| { 
                 let ret  = x.parse::<i32>();
                 match ret {
@@ -133,7 +131,7 @@ mod tests {
     #[test]
     fn test2() {
         let iterable = vec!["1", "2", "three", "4", "5"];
-        let mut fe = filter_except(iterable, 
+        let mut fe = filter_except(iter_from_vec(iterable), 
             |x| { 
                 let ret  = x.parse::<i32>();
                 match ret {

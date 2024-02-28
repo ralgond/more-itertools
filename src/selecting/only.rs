@@ -2,13 +2,12 @@ use crate::error::Error;
 use crate::error;
 use crate::look_ahead_back::spy::spy;
 
-pub fn only<I>(iterable: I, default: Option<I::Item>) -> Result<I::Item, Error> 
-where 
-I: IntoIterator,
-I::Item: Clone
+pub fn only<T>(iter: &mut Box<dyn Iterator<Item = T>>, default: Option<T>) -> Result<T, Error> 
+where
+T: Clone + 'static
 {
     let result;
-    let ret = spy(iterable, 2);
+    let ret = spy(iter, 2);
     match ret {
         None => {
             match default {
@@ -35,29 +34,24 @@ I::Item: Clone
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v1: Vec<String>= Vec::new();
-        let ret1 = only(v1, Some("missing".to_string()));
-        match ret1 {
-            Err(_) => { assert!(false) },
-            Ok(_) => { assert!(true); }
-        }
+        let ret1 = only(&mut iter_from_vec(v1), Some("missing".to_string()));
+        assert_eq!(ret1.ok().unwrap(), "missing".to_string());
+
 
         let v1: Vec<String>= vec!["too".to_string(), "many".to_string()];
-        let ret1 = only(v1, Some("missing".to_string()));
-        match ret1 {
-            Err(e) => { assert_eq!(*(e.message().unwrap()), String::from("too long")); },
-            Ok(_) => { assert!(false); }
-        }
+        let ret1 = only(&mut iter_from_vec(v1), Some("missing".to_string()));
+        assert_eq!(*ret1.err().unwrap().message().unwrap(), String::from("too long"));
+
 
         let v1: Vec<String>= vec!["too".to_string()];
-        let ret1 = only(v1, Some("missing".to_string()));
-        match ret1 {
-            Err(_) => { assert!(false); },
-            Ok(v) => { assert_eq!(v, "too".to_string()); }
-        }
+        let ret1 = only(&mut iter_from_vec(v1), Some("missing".to_string()));
+        assert_eq!(*ret1.ok().unwrap(), String::from("too"));
     }
 }
