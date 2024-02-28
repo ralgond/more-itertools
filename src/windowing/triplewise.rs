@@ -3,33 +3,11 @@ use std::fmt::Debug;
 use super::sliding_window::sliding_windowed;
 use crate::error::Error;
 
-pub struct Triplewise<T>
-where 
+pub fn triplewise<T>(iter: Box<dyn Iterator<Item=T>>) -> Box<dyn Iterator<Item = Result<Vec<T>, Error>>>
+where
 T: Clone + Debug + 'static
 {
-    iter: Box<dyn Iterator<Item=Result<Vec<T>, Error>>>
-}
-
-impl<T> Iterator for Triplewise<T> 
-where 
-T: Clone + Debug
-{
-    type Item = Result<Vec<T>, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        return self.iter.next();
-    }
-}
-
-pub fn triplewise<T>(iter: Box<dyn Iterator<Item=T>>) -> Triplewise<T>
-where
-T: Clone + Debug
-{
-    let ret: Triplewise<_> = Triplewise {
-        iter: sliding_windowed(iter, 3)
-    };
-
-    return ret;
+    return sliding_windowed(iter, 3);
 }
 
 #[cfg(test)]
@@ -43,49 +21,9 @@ mod tests {
         let v = vec![0,1,2,3,4];
         let mut pw = triplewise(iter_from_vec(v));
 
-        match pw.next() {
-            None => { assert!(false); }
-            Some(v) => {
-                match v {
-                    Ok(v2) => {
-                        assert_eq!(v2, vec![0, 1, 2]);
-                    }
-                    Err(_) => {}
-                }
-            }
-        }
-
-        match pw.next() {
-            None => { assert!(false); }
-            Some(v) => {
-                match v {
-                    Ok(v2) => {
-                        assert_eq!(v2, vec![1, 2, 3]);
-                    }
-                    Err(_) => {}
-                }
-            }
-        }
-
-        match pw.next() {
-            None => { assert!(false); }
-            Some(v) => {
-                match v {
-                    Ok(v2) => {
-                        assert_eq!(v2, vec![2, 3, 4]);
-                    }
-                    Err(_) => {}
-                }
-            }
-        }
-
-        match pw.next() {
-            None => { assert!(true); }
-            Some(_) => {
-                assert!(false);
-            }
-        }
-
-
+        assert_eq!(pw.next().unwrap().ok().unwrap(), vec![0, 1, 2]);
+        assert_eq!(pw.next().unwrap().ok().unwrap(), vec![1, 2, 3]);
+        assert_eq!(pw.next().unwrap().ok().unwrap(), vec![2, 3, 4]);
+        assert_eq!(pw.next(), None);
     }
 }

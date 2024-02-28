@@ -1,24 +1,22 @@
 
 
-pub struct Substrings<I> 
+pub struct Substrings<T> 
 where
-    I: Iterator,
-    I::Item: Clone,
+T: Clone
 {
-    iter: I,
+    iter: Box<dyn Iterator<Item = T>>,
     substring_len: usize,
     cur: usize,
-    vec: Vec<I::Item>,
+    vec: Vec<T>,
     first_iter_loop_finished: bool
 }
 
 
-impl<I> Iterator for Substrings<I> 
+impl<T> Iterator for Substrings<T> 
 where 
-    I: Iterator,
-    I::Item: Clone
+T: Clone
 {
-    type Item = Vec<<I as Iterator>::Item>;
+    type Item = Vec<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while !self.first_iter_loop_finished {
@@ -55,29 +53,30 @@ where
 }
 
 
-pub fn substrings<I>(iterable: I) -> Substrings<I::IntoIter>
+pub fn substrings<T>(iter: Box<dyn Iterator<Item = T>>) -> Box<dyn Iterator<Item = Vec<T>>>
 where
-    I: IntoIterator,
-    I::Item: Clone
+T: Clone + 'static
 {
-    Substrings {
-        iter: iterable.into_iter(),
+    Box::new(Substrings {
+        iter,
         substring_len: 1,
         cur: 0,
         vec: Vec::new(),
         first_iter_loop_finished: false
-    }
+    })
 }
 
 
 #[cfg(test)]
 mod tests {
+    use crate::itertools::iter::iter_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3,4];
-        let mut ss = substrings(v);
+        let mut ss = substrings(iter_from_vec(v));
 
         assert_eq!(Some(vec![1]), ss.next());
         assert_eq!(Some(vec![2]), ss.next());

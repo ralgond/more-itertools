@@ -1,34 +1,21 @@
+use crate::sequence::Sequence;
 
-
-use std::str::Chars;
-
-pub struct SubstringsIndexes<'a> {
+pub struct SubstringsIndexes<T> {
     string_len: usize,
-    iter: Chars<'a>,
     substring_len: usize,
     cur: usize,
-    vec: Vec<char>,
-    first_iter_loop_finished: bool,
+    vec: Box<dyn Sequence<T>>,
+    //first_iter_loop_finished: bool,
     reverse: bool,
 }
 
-impl<'a> Iterator for SubstringsIndexes<'a>
+impl<T> Iterator for SubstringsIndexes<T>
+where
+T: Clone
 {
-    type Item = (String, usize, usize);
+    type Item = (Vec<T>, usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        while !self.first_iter_loop_finished {
-            match self.iter.next() {
-                None => { 
-                    self.first_iter_loop_finished = true;
-                    break;
-                },
-                Some(v) => {
-                    self.vec.push(v);
-                }
-            }
-        }
-
         if !self.reverse {
             loop {
                 if self.substring_len > self.vec.len() {
@@ -41,14 +28,13 @@ impl<'a> Iterator for SubstringsIndexes<'a>
                     continue;
                 } else {
                     let mut ret = Vec::new();
-                    for ele in self.vec[self.cur..self.cur+self.substring_len].iter() {
-                        ret.push(ele.clone().to_string())
+                    for ele in self.vec.slice(self.cur, self.cur+self.substring_len) {
+                        ret.push(ele.clone())
                     }
                     let cur = self.cur;
                     self.cur += 1;
 
-                    let ret2 = ret.join("");
-                    return Some((ret2, cur, cur+self.substring_len));
+                    return Some((ret, cur, cur+self.substring_len));
                 }
             }
         } else {
@@ -63,14 +49,13 @@ impl<'a> Iterator for SubstringsIndexes<'a>
                     continue;
                 } else {
                     let mut ret = Vec::new();
-                    for ele in self.vec[self.cur..self.cur+self.substring_len].iter() {
-                        ret.push(ele.clone().to_string())
+                    for ele in self.vec.slice(self.cur, self.cur+self.substring_len) {
+                        ret.push(ele.clone())
                     }
                     let cur = self.cur;
                     self.cur -= 1;
 
-                    let ret2 = ret.join("");
-                    return Some((ret2, cur, cur+self.substring_len));
+                    return Some((ret, cur, cur+self.substring_len));
                 }
             }
         }
@@ -78,64 +63,69 @@ impl<'a> Iterator for SubstringsIndexes<'a>
 }
 
 
-pub fn substrings_indexes<'a>(s: &'a String, reverse: bool) -> SubstringsIndexes<'a> {
+pub fn substrings_indexes<T>(seq: Box<dyn Sequence<T>>, reverse: bool) -> Box<dyn Iterator<Item = (Vec<T>,usize,usize)>> 
+where
+T: Clone + 'static
+{
     
+    let seq_len = seq.len();
+
     let mut ret = SubstringsIndexes {
-        string_len: s.len(),
-        iter: s.chars(),
+        string_len: seq_len,
         substring_len: 1,
         cur: 0,
-        vec: Vec::new(),
-        first_iter_loop_finished: false,
+        vec: seq,
+        //first_iter_loop_finished: false,
         reverse: reverse
     };
 
     if ret.reverse {
-        ret.substring_len = s.len();
-        ret.cur = s.len() - ret.substring_len;
+        ret.substring_len = seq_len;
+        ret.cur = seq_len - ret.substring_len;
     }
 
-    return ret;
+    return Box::new(ret);
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::sequence::create_seq_from_vec;
+
     use super::*;
 
     #[test]
     fn test1() {
-        let v = "more".to_string();
-        let mut ssi = substrings_indexes(&v, false);
+        let v = create_seq_from_vec("more".to_string().chars().collect());
+        let mut ssi = substrings_indexes(v, false);
 
-        assert_eq!(Some(("m".to_string(), 0 as usize, 1 as usize)), ssi.next());
-        assert_eq!(Some(("o".to_string(), 1 as usize, 2 as usize)), ssi.next());
-        assert_eq!(Some(("r".to_string(), 2 as usize, 3 as usize)), ssi.next());
-        assert_eq!(Some(("e".to_string(), 3 as usize, 4 as usize)), ssi.next());
-        assert_eq!(Some(("mo".to_string(), 0 as usize, 2 as usize)), ssi.next());
-        assert_eq!(Some(("or".to_string(), 1 as usize, 3 as usize)), ssi.next());
-        assert_eq!(Some(("re".to_string(), 2 as usize, 4 as usize)), ssi.next());
-        assert_eq!(Some(("mor".to_string(), 0 as usize, 3 as usize)), ssi.next());
-        assert_eq!(Some(("ore".to_string(), 1 as usize, 4 as usize)), ssi.next());
-        assert_eq!(Some(("more".to_string(), 0 as usize, 4 as usize)), ssi.next());
+        assert_eq!(Some((vec!['m'], 0 as usize, 1 as usize)), ssi.next());
+        assert_eq!(Some((vec!['o'], 1 as usize, 2 as usize)), ssi.next());
+        assert_eq!(Some((vec!['r'], 2 as usize, 3 as usize)), ssi.next());
+        assert_eq!(Some((vec!['e'], 3 as usize, 4 as usize)), ssi.next());
+        assert_eq!(Some((vec!['m', 'o'], 0 as usize, 2 as usize)), ssi.next());
+        assert_eq!(Some((vec!['o', 'r'], 1 as usize, 3 as usize)), ssi.next());
+        assert_eq!(Some((vec!['r', 'e'], 2 as usize, 4 as usize)), ssi.next());
+        assert_eq!(Some((vec!['m', 'o', 'r'], 0 as usize, 3 as usize)), ssi.next());
+        assert_eq!(Some((vec!['o', 'r', 'e'], 1 as usize, 4 as usize)), ssi.next());
+        assert_eq!(Some((vec!['m', 'o', 'r', 'e'], 0 as usize, 4 as usize)), ssi.next());
         assert_eq!(None, ssi.next());
     }
 
     #[test]
     fn test2() {
-        let v = "more".to_string();
-        let mut ssi = substrings_indexes(&v, true);
+        let v = create_seq_from_vec("more".to_string().chars().collect());
+        let mut ssi = substrings_indexes(v, true);
 
-        
-        assert_eq!(Some(("more".to_string(), 0 as usize, 4 as usize)), ssi.next());
-        assert_eq!(Some(("ore".to_string(), 1 as usize, 4 as usize)), ssi.next());
-        assert_eq!(Some(("mor".to_string(), 0 as usize, 3 as usize)), ssi.next());
-        assert_eq!(Some(("re".to_string(), 2 as usize, 4 as usize)), ssi.next());
-        assert_eq!(Some(("or".to_string(), 1 as usize, 3 as usize)), ssi.next());
-        assert_eq!(Some(("mo".to_string(), 0 as usize, 2 as usize)), ssi.next());
-        assert_eq!(Some(("e".to_string(), 3 as usize, 4 as usize)), ssi.next());
-        assert_eq!(Some(("r".to_string(), 2 as usize, 3 as usize)), ssi.next());
-        assert_eq!(Some(("o".to_string(), 1 as usize, 2 as usize)), ssi.next());
-        assert_eq!(Some(("m".to_string(), 0 as usize, 1 as usize)), ssi.next());
+        assert_eq!(Some((vec!['m', 'o', 'r', 'e'], 0 as usize, 4 as usize)), ssi.next());
+        assert_eq!(Some((vec!['o', 'r', 'e'], 1 as usize, 4 as usize)), ssi.next());
+        assert_eq!(Some((vec!['m', 'o', 'r'], 0 as usize, 3 as usize)), ssi.next());
+        assert_eq!(Some((vec!['r', 'e'], 2 as usize, 4 as usize)), ssi.next());
+        assert_eq!(Some((vec!['o', 'r'], 1 as usize, 3 as usize)), ssi.next());
+        assert_eq!(Some((vec!['m', 'o'], 0 as usize, 2 as usize)), ssi.next());
+        assert_eq!(Some((vec!['e'], 3 as usize, 4 as usize)), ssi.next());
+        assert_eq!(Some((vec!['r'], 2 as usize, 3 as usize)), ssi.next());
+        assert_eq!(Some((vec!['o'], 1 as usize, 2 as usize)), ssi.next());
+        assert_eq!(Some((vec!['m'], 0 as usize, 1 as usize)), ssi.next());
         assert_eq!(None, ssi.next());
     }
 }
