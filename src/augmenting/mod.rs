@@ -13,3 +13,5 @@ pub mod repeat_last;
 pub mod adjacent;
 
 pub mod ncycles;
+
+pub mod groupby_transform;
