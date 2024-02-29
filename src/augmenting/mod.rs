@@ -11,3 +11,5 @@ pub mod repeat_each;
 pub mod repeat_last;
 
 pub mod adjacent;
+
+pub mod ncycles;
