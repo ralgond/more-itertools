@@ -40,6 +40,16 @@ pub fn any_result(v: Result<Vec<bool>, Error>) -> bool {
     return any(&(v.as_ref().ok().unwrap()));
 }
 
+pub fn are_same<T>(op1: Option<&T> , op2: Option<&T>) -> bool 
+where T: PartialEq
+{
+    match (op1, op2) {
+        (None, None) => { return true; },
+        (Some(v1), Some(v2)) => { return *v1 == *v2; },
+        _ => { return false; }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
