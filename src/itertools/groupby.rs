@@ -1,4 +1,3 @@
-use std::arch::x86_64::_MM_MASK_INEXACT;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use crate::utils::are_same;
@@ -16,7 +15,7 @@ where T: Clone + Debug + PartialEq
 
 
 impl<T> GroupBy<T> 
-where T: Clone + Debug + PartialEq + 'static
+where T: Clone + Debug + PartialEq
 {
     pub fn next_group(&mut self) -> Option<T> {
         loop {
@@ -49,11 +48,15 @@ where T: Clone + Debug + PartialEq + 'static
             }
         }
     }
+
+    pub fn collect0(&mut self) -> Vec<T> {
+        return self.collect();
+    }
 }
 
 impl<T> Iterator for GroupBy<T> 
 where
-T: PartialEq + Clone + Debug + 'static
+T: PartialEq + Clone + Debug
 {
     type Item = T;
 
@@ -98,7 +101,7 @@ T: PartialEq + Clone + Debug + 'static
 
 pub fn groupby<T>(iter: Box<dyn Iterator<Item = T>>) -> GroupBy<T> 
 where
-T: PartialEq + Clone + Debug + 'static
+T: PartialEq + Clone + Debug
 {
     return GroupBy {
         cur_key: None,
@@ -110,8 +113,9 @@ T: PartialEq + Clone + Debug + 'static
     }
 }
 
-mod tests {
 
+#[cfg(test)]
+mod tests {
     use crate::itertools::iter::iter_from_vec;
 
     use super::*;
@@ -120,26 +124,19 @@ mod tests {
     fn test1() {
         let mut ret = groupby(iter_from_vec("AAAAbbbcccC".chars().collect::<Vec<char>>()));
         assert_eq!('A', ret.next_group().unwrap());
-        assert_eq!('A', ret.next().unwrap());
-        assert_eq!('A', ret.next().unwrap());
-        assert_eq!('A', ret.next().unwrap());
-        assert_eq!('A', ret.next().unwrap());
+        assert_eq!(vec!['A','A','A','A'], ret.collect0());
         assert_eq!(None, ret.next());
 
         assert_eq!('b', ret.next_group().unwrap());
-        assert_eq!('b', ret.next().unwrap());
-        assert_eq!('b', ret.next().unwrap());
-        assert_eq!('b', ret.next().unwrap());
+        assert_eq!(vec!['b','b','b'], ret.collect0());
         assert_eq!(None, ret.next());
 
         assert_eq!('c', ret.next_group().unwrap());
-        assert_eq!('c', ret.next().unwrap());
-        assert_eq!('c', ret.next().unwrap());
-        assert_eq!('c', ret.next().unwrap());
+        assert_eq!(vec!['c','c','c'], ret.collect0());
         assert_eq!(None, ret.next());
 
         assert_eq!('C', ret.next_group().unwrap());
-        assert_eq!('C', ret.next().unwrap());
+        assert_eq!(vec!['C'], ret.collect0());
         assert_eq!(None, ret.next());
     }
 
@@ -147,31 +144,46 @@ mod tests {
     fn test2() {
         let mut ret = groupby(iter_from_vec("0AAAAbbbcccCC".chars().collect::<Vec<char>>()));
         assert_eq!('0', ret.next_group().unwrap());
-        assert_eq!('0', ret.next().unwrap());
+        assert_eq!(vec!['0'], ret.collect0());
         assert_eq!(None, ret.next());
 
         assert_eq!('A', ret.next_group().unwrap());
-        assert_eq!('A', ret.next().unwrap());
-        assert_eq!('A', ret.next().unwrap());
-        assert_eq!('A', ret.next().unwrap());
-        assert_eq!('A', ret.next().unwrap());
+        assert_eq!(vec!['A','A','A','A'], ret.collect0());
         assert_eq!(None, ret.next());
 
         assert_eq!('b', ret.next_group().unwrap());
-        assert_eq!('b', ret.next().unwrap());
-        assert_eq!('b', ret.next().unwrap());
-        assert_eq!('b', ret.next().unwrap());
+        assert_eq!(vec!['b','b','b'], ret.collect0());
         assert_eq!(None, ret.next());
 
         assert_eq!('c', ret.next_group().unwrap());
-        assert_eq!('c', ret.next().unwrap());
-        assert_eq!('c', ret.next().unwrap());
-        assert_eq!('c', ret.next().unwrap());
+        assert_eq!(vec!['c','c','c'], ret.collect0());
         assert_eq!(None, ret.next());
 
         assert_eq!('C', ret.next_group().unwrap());
-        assert_eq!('C', ret.next().unwrap());
-        assert_eq!('C', ret.next().unwrap());
+        assert_eq!(vec!['C','C'], ret.collect0());
+        assert_eq!(None, ret.next());
+    }
+
+    #[test]
+    fn test3() {
+        let mut ret = groupby(iter_from_vec("0AAAAbbbcccCC".chars().collect::<Vec<char>>()));
+        assert_eq!('0', ret.next_group().unwrap());
+
+        assert_eq!('A', ret.next_group().unwrap());
+
+        assert_eq!(vec!['A','A','A','A'], ret.collect0());
+        assert_eq!(None, ret.next());
+
+        assert_eq!('b', ret.next_group().unwrap());
+        assert_eq!(vec!['b','b','b'], ret.collect0());
+        assert_eq!(None, ret.next());
+
+        assert_eq!('c', ret.next_group().unwrap());
+        assert_eq!(vec!['c','c','c'], ret.collect0());
+        assert_eq!(None, ret.next());
+
+        assert_eq!('C', ret.next_group().unwrap());
+        assert_eq!(vec!['C','C'], ret.collect0());
         assert_eq!(None, ret.next());
     }
 }
