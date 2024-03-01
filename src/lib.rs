@@ -21,4 +21,6 @@ pub mod others;
 
 pub mod itertools;
 
+pub mod combining;
+
 

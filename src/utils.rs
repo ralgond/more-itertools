@@ -50,6 +50,12 @@ where T: PartialEq
     }
 }
 
+pub fn argsort<T: Ord>(data: &[T]) -> Vec<usize> {
+    let mut indices = (0..data.len()).collect::<Vec<_>>();
+    indices.sort_by_key(|&i| &data[i]);
+    return indices;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -85,5 +91,21 @@ mod tests {
         let v: Vec<bool> = vec![false,false];
         assert_eq!(false, any(&v));
 
+    }
+
+    #[test]
+    fn test_are_same() {
+        assert!(are_same(None::<&i32>, None));
+        assert!(!are_same(None, Some(&1)));
+        assert!(!are_same(Some(&1), None));
+        assert!(are_same(Some(&1), Some(&1)));
+        assert!(!are_same(Some(&2), Some(&1)));
+    }
+
+    #[test]
+    fn test_argsort() {
+        let v = [3,1,2,4];
+        let ret = argsort(v.as_slice());
+        assert_eq!(vec![1usize,2usize,0usize,3usize], ret);
     }
 }
