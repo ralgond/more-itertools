@@ -40,6 +40,8 @@ pub fn any_result(v: Result<Vec<bool>, Error>) -> bool {
     return any(&(v.as_ref().ok().unwrap()));
 }
 
+
+
 pub fn are_same<T>(op1: Option<&T> , op2: Option<&T>) -> bool 
 where T: PartialEq
 {
