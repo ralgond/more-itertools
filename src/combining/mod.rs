@@ -5,3 +5,5 @@ pub mod interleave;
 pub mod interleave_longest;
 
 pub mod zip_offset;
+
+pub mod zip_equal;

@@ -62,6 +62,8 @@ pub enum Kind {
     OverflowError,
 
     ParseIntError,
+
+    IteratorError
 }
 
 pub(crate) fn value_error(e: String) -> Error {
