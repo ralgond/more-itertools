@@ -54,6 +54,12 @@ mod tests {
 
     #[test]
     fn test1() {
-        assert_eq!(vec![0,1,2,3], prepend(0, iter_from_vec(vec![1,2,3])).collect::<Vec<_>>());
+        let mut iter = prepend(0, iter_from_vec(vec![1,2,3]));
+        assert_eq!(Some(0), iter.next());
+        assert_eq!(Some(1), iter.next());
+        assert_eq!(Some(2), iter.next());
+        assert_eq!(Some(3), iter.next());
+        assert_eq!(None, iter.next());
+        assert_eq!(None, iter.next());
     }
 }
