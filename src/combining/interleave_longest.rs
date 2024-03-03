@@ -5,10 +5,15 @@ pub struct InterleaveLongest<T> {
     buf: VecDeque<T>,
     buf2: VecDeque<Option<T>>,
     iter_vec: Vec<Box<dyn Iterator<Item = T>>>,
-    iter_finished: bool
+    iter_finished: bool,
+    fillnone: bool,
+    fillvalue: T
 }
 
-impl<T> Iterator for InterleaveLongest<T> {
+impl<T> Iterator for InterleaveLongest<T> 
+where
+T: Clone
+{
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -43,10 +48,16 @@ impl<T> Iterator for InterleaveLongest<T> {
             } else {
                 while self.buf2.len() > 0 {
                     match self.buf2.pop_front() {
-                        None => {},
+                        None => {
+                            
+                        },
                         Some(v) => {
                             if !v.is_none() {
                                 self.buf.push_back(v.unwrap());
+                            } else {
+                                if self.fillnone {
+                                    self.buf.push_back(self.fillvalue.clone());
+                                }
                             }
                         }
                     }
@@ -56,14 +67,16 @@ impl<T> Iterator for InterleaveLongest<T> {
     }
 }
 
-pub fn interleave_longest<T>(iter_vec: Vec<Box<dyn Iterator<Item = T>>>) -> Box<dyn Iterator<Item = T>> 
-where T: 'static
+pub fn interleave_longest<T>(iter_vec: Vec<Box<dyn Iterator<Item = T>>>, fillnone: bool, fillvalue: T) -> Box<dyn Iterator<Item = T>> 
+where T: Clone + 'static
 {
     Box::new(InterleaveLongest {
         buf: VecDeque::new(),
         buf2: VecDeque::new(),
         iter_vec,
-        iter_finished: false
+        iter_finished: false,
+        fillnone,
+        fillvalue
     })
 }
 
@@ -80,8 +93,18 @@ mod tests {
         v.push(iter_from_vec(vec![4,5]));
         v.push(iter_from_vec(vec![6,7,8]));
 
-        let ret = interleave_longest(v).collect::<Vec<_>>();
+        let ret = interleave_longest(v, false, 0).collect::<Vec<_>>();
         assert_eq!(vec![1, 4, 6, 2, 5, 7, 3, 8], ret);
+        //println!("{:?}", ret);
+
+
+        let mut v = Vec::new();
+        v.push(iter_from_vec(vec![1,2,3]));
+        v.push(iter_from_vec(vec![4,5]));
+        v.push(iter_from_vec(vec![6,7,8]));
+
+        let ret = interleave_longest(v, true, 0).collect::<Vec<_>>();
+        assert_eq!(vec![1, 4, 6, 2, 5, 7, 3, 0, 8], ret);
         //println!("{:?}", ret);
     }
 }

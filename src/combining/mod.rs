@@ -3,3 +3,5 @@ pub mod sort_together;
 pub mod interleave;
 
 pub mod interleave_longest;
+
+pub mod zip_offset;
