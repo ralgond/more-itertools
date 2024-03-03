@@ -8,4 +8,6 @@ pub mod zip_offset;
 
 pub mod zip_equal;
 
+pub mod roundrobin;
+
 pub mod prepend;

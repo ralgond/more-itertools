@@ -7,7 +7,7 @@ pub struct InterleaveLongest<T> {
     iter_vec: Vec<Box<dyn Iterator<Item = T>>>,
     iter_finished: bool,
     fillnone: bool,
-    fillvalue: T
+    fillvalue: Option<T>
 }
 
 impl<T> Iterator for InterleaveLongest<T> 
@@ -56,7 +56,7 @@ T: Clone
                                 self.buf.push_back(v.unwrap());
                             } else {
                                 if self.fillnone {
-                                    self.buf.push_back(self.fillvalue.clone());
+                                    self.buf.push_back(self.fillvalue.as_ref().unwrap().clone());
                                 }
                             }
                         }
@@ -67,15 +67,21 @@ T: Clone
     }
 }
 
-pub fn interleave_longest<T>(iter_vec: Vec<Box<dyn Iterator<Item = T>>>, fillnone: bool, fillvalue: T) -> Box<dyn Iterator<Item = T>> 
+pub fn interleave_longest<T>(iter_vec: Vec<Box<dyn Iterator<Item = T>>>, fillvalue: Option<T>) -> Box<dyn Iterator<Item = T>> 
 where T: Clone + 'static
 {
+    let fillnone;
+    match fillvalue {
+        None => { fillnone = false },
+        Some(_) => { fillnone = true }
+    }
+
     Box::new(InterleaveLongest {
         buf: VecDeque::new(),
         buf2: VecDeque::new(),
         iter_vec,
         iter_finished: false,
-        fillnone,
+        fillnone: fillnone,
         fillvalue
     })
 }
@@ -93,7 +99,7 @@ mod tests {
         v.push(iter_from_vec(vec![4,5]));
         v.push(iter_from_vec(vec![6,7,8]));
 
-        let ret = interleave_longest(v, false, 0).collect::<Vec<_>>();
+        let ret = interleave_longest(v, None).collect::<Vec<_>>();
         assert_eq!(vec![1, 4, 6, 2, 5, 7, 3, 8], ret);
         //println!("{:?}", ret);
 
@@ -103,7 +109,7 @@ mod tests {
         v.push(iter_from_vec(vec![4,5]));
         v.push(iter_from_vec(vec![6,7,8]));
 
-        let ret = interleave_longest(v, true, 0).collect::<Vec<_>>();
+        let ret = interleave_longest(v, Some(0)).collect::<Vec<_>>();
         assert_eq!(vec![1, 4, 6, 2, 5, 7, 3, 0, 8], ret);
         //println!("{:?}", ret);
     }
