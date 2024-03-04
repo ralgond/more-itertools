@@ -13,3 +13,5 @@ pub mod iter;
 pub mod zip;
 
 pub mod groupby;
+
+pub mod sum;
