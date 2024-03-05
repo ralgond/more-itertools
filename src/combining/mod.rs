@@ -11,3 +11,5 @@ pub mod zip_equal;
 pub mod roundrobin;
 
 pub mod prepend;
+
+pub mod dotproduct;

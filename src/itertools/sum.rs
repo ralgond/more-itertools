@@ -47,6 +47,8 @@ macro_rules! sum {
     };
 }
 
+pub(crate) use sum;
+
 
 #[cfg(test)]
 mod tests {
