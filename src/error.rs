@@ -1,12 +1,12 @@
 use std::fmt;
 
 pub struct Error {
-    inner: Box<Inner>,
+    pub(crate) inner: Box<Inner>,
 }
 
-struct Inner {
+pub struct Inner {
     kind: Kind,
-    message: Option<String>
+    pub(crate) message: Option<String>
 }
 
 impl Error {
@@ -63,7 +63,9 @@ pub enum Kind {
 
     ParseIntError,
 
-    IteratorError
+    IteratorError,
+
+    None
 }
 
 pub(crate) fn value_error(e: String) -> Error {
