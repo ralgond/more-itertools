@@ -23,4 +23,6 @@ pub mod itertools;
 
 pub mod combining;
 
+pub mod summarizing;
+
 

@@ -1,3 +1,4 @@
+use crate::error;
 use crate::error::Error;
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -74,6 +75,72 @@ where T: Hash + Eq + PartialEq
             }
         }
     }
+}
+
+struct Okok<T> {
+    ok_vec: Vec<T>,
+    cur: usize
+}
+
+impl<T> Iterator for Okok<T> 
+where
+T: Clone + 'static
+{
+    type Item = Result<T, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur >= self.ok_vec.len() {
+            return None;
+        } else {
+            let ret = self.ok_vec.get(self.cur).unwrap().clone();
+            self.cur += 1;
+            return Some(Ok(ret));
+        }
+    }
+}
+
+pub fn generate_okok_iterator<T>(ok_vec: Vec<T>) -> Box<dyn Iterator<Item = Result<T, Error>>> 
+where
+T: Clone + 'static
+{
+    return Box::new(Okok {
+        ok_vec,
+        cur: 0
+    });
+}
+
+struct Okokerr<T> {
+    ok_vec: Vec<T>,
+    err: Error,
+    cur: usize
+}
+
+impl<T> Iterator for Okokerr<T> 
+where
+T: Clone + 'static
+{
+    type Item = Result<T, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur >= self.ok_vec.len() {
+            return Some(Err(error::any_error(self.err.kind(), self.err.message().unwrap().clone())));
+        } else {
+            let ret = self.ok_vec.get(self.cur).unwrap().clone();
+            self.cur += 1;
+            return Some(Ok(ret));
+        }
+    }
+}
+
+pub fn generate_okokerr_iterator<T>(ok_vec: Vec<T>, err: Error) -> Box<dyn Iterator<Item = Result<T, Error>>> 
+where
+T: Clone + 'static
+{
+    return Box::new(Okokerr {
+        ok_vec,
+        err,
+        cur: 0
+    });
 }
 
 #[cfg(test)]
