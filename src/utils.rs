@@ -61,18 +61,37 @@ pub fn argsort<T: Ord>(data: &[T]) -> Vec<usize> {
     return indices;
 }
 
-pub fn counter<T>(hm: &mut HashMap<T, usize>, mut iter: Box<dyn Iterator<Item = T>>)
+
+pub fn counter<T>(hm: &mut HashMap<T, usize>, mut iter: Box<dyn Iterator<Item = Result<T,Error>>>) -> Result<(), Error>
 where T: Hash + Eq + PartialEq
 {
     loop {
         let _next = iter.next();
-        match _next {
-            None => {
-                return;
-            },
-            Some(key) => {
-                hm.entry(key).and_modify(|x| {*x += 1}).or_insert(1);
+
+        if let Some(res) = _next {
+            match res {
+                Ok(key) => {
+                    let value = hm.get_mut(&key);
+                    let add_res;
+                    if value.is_none() {
+                        add_res = (1, false);
+                    } else {
+                        add_res = usize::overflowing_add(*value.unwrap(), 1);
+                    }
+                    
+                    if add_res.1 {
+                        return Err(error::overflow_error("[counter] overflow".to_string()));
+                    } else {
+                        hm.insert(key, add_res.0);
+                        continue;
+                    }
+                },
+                Err(err) => {
+                    return Err(error::any_error(err.kind(), err.message().unwrap().clone()));
+                }
             }
+        } else {
+            return Ok(());
         }
     }
 }
@@ -146,7 +165,7 @@ T: Clone + 'static
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{error, itertools::iter::iter_from_vec};
+    use crate::error;
 
     #[test]
     fn test1() {
@@ -200,7 +219,7 @@ mod tests {
     fn test_counter() {
         let v = vec![5,1,2,2,3,3,3,4,4,4,4,5,5,5,5];
         let mut hm = HashMap::new();
-        counter(&mut hm, iter_from_vec(v));
+        let _ = counter(&mut hm, generate_okok_iterator(v));
         assert_eq!(&1, hm.get(&1).unwrap());
         assert_eq!(&2, hm.get(&2).unwrap());
         assert_eq!(&3, hm.get(&3).unwrap());
