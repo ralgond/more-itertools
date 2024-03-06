@@ -1,4 +1,6 @@
 use crate::error::Error;
+use std::collections::HashMap;
+use std::hash::Hash;
 
 pub fn extract_value_from_result_vec<T>(vec: Vec<Result<T, Error>>) -> (Vec<T>, bool) {
     let mut ret_vec = Vec::new();
@@ -58,10 +60,26 @@ pub fn argsort<T: Ord>(data: &[T]) -> Vec<usize> {
     return indices;
 }
 
+pub fn counter<T>(hm: &mut HashMap<T, usize>, mut iter: Box<dyn Iterator<Item = T>>)
+where T: Hash + Eq + PartialEq
+{
+    loop {
+        let _next = iter.next();
+        match _next {
+            None => {
+                return;
+            },
+            Some(key) => {
+                hm.entry(key).and_modify(|x| {*x += 1}).or_insert(1);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error;
+    use crate::{error, itertools::iter::iter_from_vec};
 
     #[test]
     fn test1() {
@@ -109,5 +127,17 @@ mod tests {
         let v = [3,1,2,4];
         let ret = argsort(v.as_slice());
         assert_eq!(vec![1usize,2usize,0usize,3usize], ret);
+    }
+
+    #[test]
+    fn test_counter() {
+        let v = vec![5,1,2,2,3,3,3,4,4,4,4,5,5,5,5];
+        let mut hm = HashMap::new();
+        counter(&mut hm, iter_from_vec(v));
+        assert_eq!(&1, hm.get(&1).unwrap());
+        assert_eq!(&2, hm.get(&2).unwrap());
+        assert_eq!(&3, hm.get(&3).unwrap());
+        assert_eq!(&4, hm.get(&4).unwrap());
+        assert_eq!(&5, hm.get(&5).unwrap());
     }
 }
