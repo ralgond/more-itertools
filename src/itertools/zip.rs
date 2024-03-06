@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use crate::error;
 use crate::error::Error;
 
@@ -34,11 +36,15 @@ T1: Clone
                     }, 
                     _ => {
                         if v0.is_err() {
-                            return Some(Err(error::any_error(v0.as_ref().err().unwrap().kind(), 
-                                            "[zip.v0] ".to_string()+v0.as_ref().err().unwrap().message().unwrap())));
+                            self.iter_error = Some(error::any_error(v0.as_ref().err().unwrap().kind(), 
+                            "[zip.v0] ".to_string()+v0.as_ref().err().unwrap().message().unwrap()));
+
+                            return Some(Err(self.iter_error.as_ref().unwrap().clone()));
                         } else {
-                            return Some(Err(error::any_error(v0.as_ref().err().unwrap().kind(), 
-                                            "[zip.v1] ".to_string()+v0.as_ref().err().unwrap().message().unwrap())));
+                            self.iter_error = Some(error::any_error(v1.as_ref().err().unwrap().kind(), 
+                            "[zip.v1] ".to_string()+v1.as_ref().err().unwrap().message().unwrap()));
+
+                            return Some(Err(self.iter_error.as_ref().unwrap().clone()));
                         }
                     }
                 }
@@ -62,7 +68,7 @@ T1: Clone
 
 #[cfg(test)]
 mod tests {
-    use crate::{utils::{extract_value_from_result_vec, generate_okok_iterator}};
+    use crate::utils::{extract_value_from_result_vec, generate_okok_iterator, generate_okokerr_iterator};
 
     use super::*;
 
@@ -80,5 +86,12 @@ mod tests {
         let ret = zip(generate_okok_iterator(vec![1,2,3]), generate_okok_iterator(vec!["a".to_string(), "b".to_string(), "c".to_string(), "d".to_string()]));
         let v = vec![(1, "a".to_string()), (2, "b".to_string()), (3, "c".to_string())];
         assert_eq!(v, extract_value_from_result_vec(ret.collect::<Vec<_>>()).0);
+
+
+        let mut ret = zip(generate_okok_iterator(vec![1,2,3]), generate_okokerr_iterator(vec!["a".to_string(), "b".to_string()], error::overflow_error("for zip test".to_string())));
+        assert_eq!((1, "a".to_string()), ret.next().unwrap().ok().unwrap());
+        assert_eq!((2, "b".to_string()), ret.next().unwrap().ok().unwrap());
+        assert_eq!(error::Kind::OverflowError, ret.next().unwrap().err().unwrap().kind());
+        assert_eq!(error::Kind::OverflowError, ret.next().unwrap().err().unwrap().kind());
     }
 }

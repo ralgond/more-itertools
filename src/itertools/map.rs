@@ -84,8 +84,8 @@ impl<T0, T1, J> Iterator for Map2<T0, T1, J>
                             return Some(Err(error::any_error(v0.as_ref().err().unwrap().kind(), 
                                             "[map2.v0] ".to_string()+v0.as_ref().err().unwrap().message().unwrap())));
                         } else {
-                            return Some(Err(error::any_error(v0.as_ref().err().unwrap().kind(), 
-                                            "[map2.v1] ".to_string()+v0.as_ref().err().unwrap().message().unwrap())));
+                            return Some(Err(error::any_error(v1.as_ref().err().unwrap().kind(), 
+                                            "[map2.v1] ".to_string()+v1.as_ref().err().unwrap().message().unwrap())));
                         }
                     }
                 }
