@@ -43,6 +43,15 @@ pub fn any_result(v: Result<Vec<bool>, Error>) -> bool {
     return any(&(v.as_ref().ok().unwrap()));
 }
 
+pub fn any_result2(v: Vec<Result<bool, Error>>) -> Result<bool, Error> {
+    for i in v.iter() {
+        if i.is_err() {
+            return i.clone();
+        }
+    }
+    return Ok(true);
+}
+
 
 
 pub fn are_same<T>(op1: Option<&T> , op2: Option<&T>) -> bool 

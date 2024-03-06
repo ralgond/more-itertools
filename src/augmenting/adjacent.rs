@@ -1,7 +1,7 @@
 // use crate::error::Error;
 // use crate::itertools::{tee::tee, map::map, zip::zip, iter::iter_from_vec};
 // use crate::windowing::windowed::windowed;
-// use crate::utils::{any_result, generate_okok_iterator};
+// use crate::utils::{any_result, any_result2, generate_okok_iterator};
 
 // use crate::itertools::chain::chain; 
 
@@ -25,7 +25,7 @@
 //     let selected = chain(input);
     
 
-//     let adjacent_to_selected = map(windowed(selected, 2 * distance + 1, 1), any_result);
+//     let adjacent_to_selected = map(windowed(selected, 2 * distance + 1, 1), any_result2);
 //     // println!("adjacent_to_selected={:?}", adjacent_to_selected);
 
 //     let ret0 = zip(adjacent_to_selected, i2);
