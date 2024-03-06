@@ -1,4 +1,4 @@
-
+use crate::error::{self, Error};
 
 pub trait Sequence<T>
 {
@@ -70,9 +70,33 @@ where T: 'static
     return SequenceVector::new(v);
 }
 
+pub fn create_seq_from_iterator_result<T>(mut iter: Box<dyn Iterator<Item=Result<T, Error>>>) -> Result<Box<dyn Sequence<T>>, Error>
+where T: 'static
+{
+    let mut v = Vec::new();
+    loop {
+        let _next = iter.next();
+        if let Some(_v) = _next {
+            match _v {
+                Ok(_v2) => {
+                    v.push(_v2)
+                },
+                Err(err) => {
+                    return Err(error::any_error(err.kind(), err.message().unwrap().clone()))
+                }
+            }
+            
+        } else {
+            break;
+        }
+    }
+
+    return Ok(SequenceVector::new(v));
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::itertools::iter::iter_from_vec;
+    use crate::{itertools::iter::iter_from_vec, utils::{generate_okok_iterator, generate_okokerr_iterator}};
 
     use super::*;
 
@@ -94,5 +118,25 @@ mod tests {
         assert_eq!(1, *v.get(0).unwrap());
         assert_eq!(2, *v.get(1).unwrap());
         assert_eq!(3, *v.get(2).unwrap());
+    }
+
+    #[test]
+    fn test_create_seq_from_iterator_result() {
+        let v = generate_okok_iterator(vec![1,2,3]);
+        let ret = create_seq_from_iterator_result(v);
+
+        if let Ok(v) = ret {
+            assert_eq!(3, v.len());
+            assert_eq!(1, *v.get(0).unwrap());
+            assert_eq!(2, *v.get(1).unwrap());
+            assert_eq!(3, *v.get(2).unwrap());
+        }
+
+        let v = generate_okokerr_iterator(vec![1,2,3], error::overflow_error("overflow".to_string()));
+        let ret = create_seq_from_iterator_result(v);
+
+        if let Err(err) = ret {
+            assert_eq!(error::Kind::OverflowError, err.kind());
+        }
     }
 }

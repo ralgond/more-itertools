@@ -1,18 +1,24 @@
+use crate::error::Error;
 
 pub struct Chain<T> {
-    input: Vec<Box<dyn Iterator<Item=T>>>,
+    input: Vec<Box<dyn Iterator<Item=Result<T, Error>>>>,
     cur_idx: usize,
-    iter_finished: bool
+    iter_finished: bool,
+    iter_err: Option<Error>
 }
 
 impl<T> Iterator for Chain<T>
 {
-    type Item = T;
+    type Item = Result<T, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.iter_finished {
                 return None;
+            }
+
+            if self.iter_err.is_some() {
+                return Some(Err(self.iter_err.as_ref().unwrap().clone()));
             }
     
             if self.cur_idx >= self.input.len() {
@@ -35,17 +41,18 @@ impl<T> Iterator for Chain<T>
     }
 }
 
-pub fn chain<T: 'static>(input: Vec<Box<dyn Iterator<Item=T>>>) -> Box<dyn Iterator<Item=T>>  {
+pub fn chain<T: 'static>(input: Vec<Box<dyn Iterator<Item = Result<T, Error>>>>) -> Box<dyn Iterator<Item = Result<T, Error>>>  {
     Box::new(Chain {
         input,
         cur_idx: 0,
-        iter_finished: false
+        iter_finished: false,
+        iter_err: None
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::itertools::map::map;
+    use crate::{itertools::map::map, utils::{extract_value_from_result_vec, generate_okok_iterator}};
 
     use super::*;
 
@@ -54,14 +61,17 @@ mod tests {
         let mut input = Vec::new();
 
         let v = vec![1,2,3];
-        let ret1 = map(Box::new(v.clone().into_iter()), |x| {x});
+        let ret1 = generate_okok_iterator(v);
         input.push(ret1);
 
-        let ret2 = map(Box::new(v.clone().into_iter()), |x| {x*2});
+        let v = vec![2,4,6];
+        let ret2 = generate_okok_iterator(v);
         input.push(ret2);
 
         let chain = chain(input);
 
-        assert_eq!(vec![1,2,3,2,4,6], chain.collect::<Vec<_>>());
+        let ret = extract_value_from_result_vec(chain.collect::<Vec<_>>());
+        assert!(!ret.1);
+        assert_eq!(vec![1,2,3,2,4,6], ret.0);
     }
 }

@@ -1,9 +1,11 @@
 use std::fmt;
 
+#[derive(Clone)]
 pub struct Error {
     pub(crate) inner: Box<Inner>,
 }
 
+#[derive(Clone)]
 pub struct Inner {
     kind: Kind,
     pub(crate) message: Option<String>

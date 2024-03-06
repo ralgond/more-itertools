@@ -54,7 +54,8 @@ pub(crate) use sum;
 mod tests {
     use crate::error;
     use crate::itertools::iter::iter_from_vec;
-    use crate::itertools::map::map2_result;
+    use crate::itertools::map::map2;
+    use crate::utils::generate_okok_iterator;
 
     //use super::*;
 
@@ -75,10 +76,10 @@ mod tests {
         let ret = sum!(usize, iter, 0);
         assert_eq!(error::Kind::OverflowError, ret.err().unwrap().kind());
 
-        let v1 = iter_from_vec(vec![2, 3, usize::MAX]);
-        let v2 = iter_from_vec(vec![1, 2, 3]);
-        let mut iter = map2_result(v1, v2, |x, y| {
-            let ret = x.overflowing_mul(y);
+        let v1 = generate_okok_iterator(vec![2, 3, usize::MAX]);
+        let v2 = generate_okok_iterator(vec![1, 2, 3]);
+        let mut iter = map2(v1, v2, |x, y| {
+            let ret = x.overflowing_mul(*y);
                 if ret.1 {
                     return Err(error::any_error(error::Kind::OverflowError, "multiple overflow.".to_string()));
                 } else {
