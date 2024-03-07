@@ -52,7 +52,7 @@ pub fn chain<T: 'static>(input: Vec<Box<dyn Iterator<Item = Result<T, Error>>>>)
 
 #[cfg(test)]
 mod tests {
-    use crate::{utils::{extract_value_from_result_vec, generate_okok_iterator}};
+    use crate::utils::{extract_value_from_result_vec, generate_okok_iterator};
 
     use super::*;
 

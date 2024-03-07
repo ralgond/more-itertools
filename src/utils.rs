@@ -36,12 +36,12 @@ pub fn any(v: &Vec<bool>) -> bool {
 }
 
 
-pub fn any_result(v: Result<Vec<bool>, Error>) -> bool {
-    if v.is_err() {
-        return false;
-    }
-    return any(&(v.as_ref().ok().unwrap()));
-}
+// pub fn any_result(v: Result<Vec<bool>, Error>) -> bool {
+//     if v.is_err() {
+//         return false;
+//     }
+//     return any(&(v.as_ref().ok().unwrap()));
+// }
 
 pub fn any_result2(v: Vec<Result<bool, Error>>) -> Result<bool, Error> {
     for i in v.iter() {

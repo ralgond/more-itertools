@@ -1,86 +1,111 @@
-pub struct BeforeAndAfter<T>
-where
-T: Clone
-{
-    before: Vec<T>,
-    the_one: Option<T>,
-    consumed_the_one: bool,
-    after: Option<Box<dyn Iterator<Item=T>>>,
-}
+// use std::{cell::RefCell, rc::Rc};
 
-impl<T> Iterator for BeforeAndAfter<T>    
-where
-T: Clone
-{
-    type Item = T;
+// struct BeforeAndAfterInner<T>
+// where
+// T: Clone
+// {
+//     before: Vec<T>,
+//     the_one: Option<T>,
+//     consumed_the_one: bool,
+//     after: Option<Box<dyn Iterator<Item=T>>>,
+// }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if !self.consumed_the_one {
-            self.consumed_the_one = true;
-            match &self.the_one {
-                None => { return None; },
-                Some(v) => { return Some(v.clone()); }
-            }
-            //return None;
-        } else {
-            match &mut self.after {
-                None => { return None; }
-                Some(v) => {
-                    return v.next();
-                }
-            }
-        }
-    }
-}
+// struct BeforeAndAfter<T> 
+// where
+// T: Clone
+// {
+//     inner: Rc<RefCell<BeforeAndAfterInner<T>>>
+// }
+
+// struct BeforeCursor<T> 
+// where
+// T: Clone
+// {
+//     inner: Rc<RefCell<BeforeAndAfterInner<T>>>
+// }
+
+// struct AfterCursor<T> 
+// where
+// T: Clone
+// {
+//     inner: Rc<RefCell<BeforeAndAfterInner<T>>>
+// }
+
+// impl<T> Iterator for AfterCursor<T>    
+// where
+// T: Clone
+// {
+//     type Item = T;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let mut inner = self.inner.borrow_mut();
+
+//         if !inner.consumed_the_one {
+//             inner.consumed_the_one = true;
+//             match &inner.the_one {
+//                 None => { return None; },
+//                 Some(v) => { return Some(v.clone()); }
+//             }
+//             //return None;
+//         } else {
+//             match &mut inner.after {
+//                 None => { return None; }
+//                 Some(v) => {
+//                     return v.next();
+//                 }
+//             }
+//         }
+//     }
+// }
 
 
-pub fn before_and_after<T> (iterable: Box<dyn Iterator<Item=T>>, predicate: fn(item: &T)->bool) -> BeforeAndAfter<T>
-where
-    T: Clone,
-{
-    let mut ret = BeforeAndAfter {
-        before: Vec::new(),
-        after: None,
-        the_one: None,
-        consumed_the_one: false
-    };
+// pub fn before_and_after<T> (iterable: Box<dyn Iterator<Item=T>>, predicate: fn(item: &T)->bool) -> BeforeAndAfter<T>
+// where
+//     T: Clone,
+// {
+//     let mut ret = BeforeAndAfter {
+//         before: Vec::new(),
+//         after: None,
+//         the_one: None,
+//         consumed_the_one: false
+//     };
 
-    let mut into_iter = iterable.into_iter();
+//     let mut into_iter = iterable.into_iter();
 
-    loop {
-        match into_iter.next() {
-            None => {break;}
-            Some(ret_val) => {
-                if predicate(&ret_val) {
-                    ret.before.push(ret_val);
-                } else {
-                    ret.the_one = Some(ret_val);
-                    ret.after = Some(into_iter);
-                    break;
-                }
-            }
-        }
-    } 
+//     loop {
+//         match into_iter.next() {
+//             None => {break;}
+//             Some(ret_val) => {
+//                 if predicate(&ret_val) {
+//                     ret.before.push(ret_val);
+//                 } else {
+//                     ret.the_one = Some(ret_val);
+//                     ret.after = Some(into_iter);
+//                     break;
+//                 }
+//             }
+//         }
+//     } 
 
-    return ret;
-}
+//     return ret;
+// }
 
-#[cfg(test)]
-mod tests {
+// #[cfg(test)]
+// mod tests {
 
-    use crate::itertools::iter::iter_from_vec;
+//     use crate::itertools::iter::iter_from_vec;
 
-    use super::*;
+//     use super::*;
 
-    #[test]
-    fn test1() {
-        let v1 = String::from("ABCdEfGhI");
-        let baa = before_and_after(iter_from_vec(v1.chars().collect()), |x: &char| { x.is_ascii_uppercase() });
+//     #[test]
+//     fn test1() {
+//         let v1 = String::from("ABCdEfGhI");
+//         let baa = before_and_after(iter_from_vec(v1.chars().collect()), |x: &char| { x.is_ascii_uppercase() });
 
-        assert_eq! (vec!['A', 'B', 'C'], baa.before);
+//         assert_eq! (vec!['A', 'B', 'C'], baa.before);
 
-        let v = baa.collect::<Vec<_>>();
-        assert_eq!(vec!['d', 'E', 'f', 'G', 'h', 'I'], v);
-    }
+//         let v = baa.collect::<Vec<_>>();
+//         assert_eq!(vec!['d', 'E', 'f', 'G', 'h', 'I'], v);
+//     }
 
-}
+// }
