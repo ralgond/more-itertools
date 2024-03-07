@@ -45,11 +45,15 @@ pub fn any_result(v: Result<Vec<bool>, Error>) -> bool {
 
 pub fn any_result2(v: Vec<Result<bool, Error>>) -> Result<bool, Error> {
     for i in v.iter() {
-        if i.is_err() {
+        if i.is_ok() {
+            if *i.as_ref().unwrap() {
+                return Ok(true);
+            }
+        } else {
             return i.clone();
         }
     }
-    return Ok(true);
+    return Ok(false);
 }
 
 

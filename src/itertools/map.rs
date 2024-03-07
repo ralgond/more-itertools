@@ -24,8 +24,13 @@ impl<T,J> Iterator for Map<T, J>
         if let Some(v) = _next {
             if let Ok(v2) = v {
                 let j = (self.pred)(v2);
+                if j.is_err() {
+                    self.iter_error = Some(j.as_ref().err().unwrap().clone());
+                    self.iter_finished = true;
+                }
                 return Some(j);
             } else {
+                self.iter_finished = true;
                 return Some(Err(v.err().unwrap()));
             }
         } else {
@@ -76,16 +81,23 @@ impl<T0, T1, J> Iterator for Map2<T0, T1, J>
                         let j = (self.pred)(v0_t, v1_t);
                         if j.is_err() {
                             self.iter_error = Some(j.as_ref().err().unwrap().clone());
+                            self.iter_finished = true;
                         }
                         return Some(j);
                     }, 
                     _ => {
                         if v0.is_err() {
-                            return Some(Err(error::any_error(v0.as_ref().err().unwrap().kind(), 
-                                            "[map2.v0] ".to_string()+v0.as_ref().err().unwrap().message().unwrap())));
+                            self.iter_error = Some(error::any_error(v0.as_ref().err().unwrap().kind(), 
+                            "[map.v0] ".to_string()+v0.as_ref().err().unwrap().message().unwrap()));
+
+                            self.iter_finished = true;
+                            return Some(Err(self.iter_error.as_ref().unwrap().clone()));
                         } else {
-                            return Some(Err(error::any_error(v1.as_ref().err().unwrap().kind(), 
-                                            "[map2.v1] ".to_string()+v1.as_ref().err().unwrap().message().unwrap())));
+                            self.iter_error = Some(error::any_error(v1.as_ref().err().unwrap().kind(), 
+                            "[map.v1] ".to_string()+v1.as_ref().err().unwrap().message().unwrap()));
+
+                            self.iter_finished = true;
+                            return Some(Err(self.iter_error.as_ref().unwrap().clone()));
                         }
                     }
                 }
@@ -113,53 +125,9 @@ pub fn map2<T0: 'static, T1: 'static, J: 'static>(
 }
 
 
-// struct Map2Result<T0, T1, J> {
-//     iter0: Box<dyn Iterator<Item=T0>>,
-//     iter1: Box<dyn Iterator<Item=T1>>,
-//     pred: fn(T0, T1)->Result<J, Error>,
-//     iter_finished: bool
-// }
-
-// impl<T0, T1, J> Iterator for Map2Result<T0, T1, J>
-// {
-//     type Item = Result<J,Error>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.iter_finished {
-//             return None;
-//         }
-//         let _next0 = self.iter0.next();
-//         let _next1 = self.iter1.next();
-//         match (_next0, _next1) {
-//             (Some(v0), Some(v1)) => {
-//                 let j = (self.pred)(v0, v1);
-//                 return Some(j);
-//             },
-//             _ => {
-//                 self.iter_finished = true;
-//                 return None;
-//             },
-//         }
-//     }
-// }
-
-// pub fn map2_result<T0: 'static, T1: 'static, J: 'static>(
-//     iter0: Box<dyn Iterator<Item=T0>>, 
-//     iter1: Box<dyn Iterator<Item=T1>>,
-//     pred: fn(T0,T1)->Result<J, Error>) -> Box<dyn Iterator<Item=Result<J,Error>>> 
-// {
-//     return Box::new(Map2Result {
-//         iter0,
-//         iter1,
-//         pred: pred,
-//         iter_finished: false
-//     });
-// }
-
-
 #[cfg(test)]
 mod tests {
-    use crate::{error, utils::{extract_value_from_result_vec, generate_okok_iterator}};
+    use crate::{error, utils::{extract_value_from_result_vec, generate_okok_iterator, generate_okokerr_iterator}};
 
     use super::*;
 
@@ -169,6 +137,15 @@ mod tests {
         let ret = map(v, |x| {Ok(x==3)});
         let ret = extract_value_from_result_vec(ret.collect::<Vec<_>>());
         assert!(!ret.1);
+        assert_eq!(vec![false,false,true], ret.0);
+    }
+
+    #[test]
+    fn test1_error() {
+        let v = generate_okokerr_iterator(vec![1,2,3], error::overflow_error("for test".to_string()));
+        let ret = map(v, |x| {Ok(x==3)});
+        let ret = extract_value_from_result_vec(ret.collect::<Vec<_>>());
+        assert!(ret.1);
         assert_eq!(vec![false,false,true], ret.0);
     }
 
@@ -201,7 +178,7 @@ mod tests {
         assert_eq!(Ok(2), ret.next().unwrap());
         assert_eq!(Ok(6), ret.next().unwrap());
         assert_eq!(error::Kind::OverflowError, ret.next().unwrap().err().unwrap().kind());
-        assert_eq!(error::Kind::OverflowError, ret.next().unwrap().err().unwrap().kind());
+        assert_eq!(None, ret.next());
     }
 }
 

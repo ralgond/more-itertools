@@ -93,5 +93,11 @@ mod tests {
         assert_eq!((2, "b".to_string()), ret.next().unwrap().ok().unwrap());
         assert_eq!(error::Kind::OverflowError, ret.next().unwrap().err().unwrap().kind());
         assert_eq!(error::Kind::OverflowError, ret.next().unwrap().err().unwrap().kind());
+
+        let mut ret = zip(generate_okokerr_iterator(vec![1,2], error::overflow_error("for zip test".to_string())), generate_okok_iterator(vec!["a".to_string(), "b".to_string(), "c".to_string()]));
+        assert_eq!((1, "a".to_string()), ret.next().unwrap().ok().unwrap());
+        assert_eq!((2, "b".to_string()), ret.next().unwrap().ok().unwrap());
+        assert_eq!(error::Kind::OverflowError, ret.next().unwrap().err().unwrap().kind());
+        assert_eq!(error::Kind::OverflowError, ret.next().unwrap().err().unwrap().kind());
     }
 }
