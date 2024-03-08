@@ -1,17 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 use crate::error::{self, Error};
 use crate::itertools::iter::iter_from_result_vec;
-use crate::others::cache_last::{cache_last, CacheLast};
+use crate::others::cache_last::cache_last;
 
 struct BeforeAndAfterInner<T>
 where
 T: Clone
 {
     before: Box<dyn Iterator<Item = Result<T,Error>>>,
-    cl: CacheLast<T>,
+    // cl: CacheLast<T>,
     cl_iter: Box<dyn Iterator<Item = Result<T,Error>>>,
-    err: Option<Error>,
-    iter_finished: bool
+    err: Option<Error>
 }
 
 impl<T> BeforeAndAfterInner<T> 
@@ -23,7 +22,6 @@ T: Clone + 'static {
         let mut cl_iter = cl.iter();
         let mut before = Vec::<Result<T,Error>>::new();
         let mut err: Option<Error> = None;
-        let mut iter_finished: bool = false;
 
         loop {
             if let Some(ret) = cl_iter.next() {
@@ -45,7 +43,6 @@ T: Clone + 'static {
                     break;
                 }
             } else {
-                iter_finished = true;
                 break;
             }
         } 
@@ -54,10 +51,9 @@ T: Clone + 'static {
         
         let ret = BeforeAndAfterInner {
             before: iter_from_result_vec(before),
-            cl,
+            //cl,
             cl_iter,
-            err,
-            iter_finished
+            err
         };
 
         return ret;
@@ -265,7 +261,7 @@ mod tests {
         let v1 = String::from("ABC");
         let (baa_before_iter, baa_after_iter) = before_and_after(
             generate_okokerr_iterator(v1.chars().collect(), error::overflow_error("for test".to_string())), 
-            |x: &char| { return Err(error::overflow_error("for test".to_string())) });
+            |_: &char| { return Err(error::overflow_error("for test".to_string())) });
 
 
         let ret = extract_value_from_result_vec(baa_before_iter.collect());
