@@ -260,4 +260,23 @@ mod tests {
         assert_eq!(Vec::<char>::new(), ret.0);
     }
 
+    #[test]
+    fn test6() {
+        let v1 = String::from("ABC");
+        let (baa_before_iter, baa_after_iter) = before_and_after(
+            generate_okokerr_iterator(v1.chars().collect(), error::overflow_error("for test".to_string())), 
+            |x: &char| { return Err(error::overflow_error("for test".to_string())) });
+
+
+        let ret = extract_value_from_result_vec(baa_before_iter.collect());
+        assert_eq! (Vec::<char>::new(), ret.0);
+        assert!(ret.1.is_some());
+        println!("{:?}", ret);
+
+        let v = baa_after_iter.collect::<Vec<_>>();
+        let ret = extract_value_from_result_vec(v);
+        assert!(ret.1.is_some());
+        assert_eq!(Vec::<char>::new(), ret.0);
+    }
+
 }
