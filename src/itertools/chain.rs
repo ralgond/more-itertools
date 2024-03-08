@@ -71,7 +71,7 @@ mod tests {
         let chain = chain(input);
 
         let ret = extract_value_from_result_vec(chain.collect::<Vec<_>>());
-        assert!(!ret.1);
+        assert!(ret.1.is_none());
         assert_eq!(vec![1,2,3,2,4,6], ret.0);
     }
 }

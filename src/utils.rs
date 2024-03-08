@@ -3,15 +3,15 @@ use crate::error::Error;
 use std::collections::HashMap;
 use std::hash::Hash;
 
-pub fn extract_value_from_result_vec<T>(vec: Vec<Result<T, Error>>) -> (Vec<T>, bool) {
+pub fn extract_value_from_result_vec<T>(vec: Vec<Result<T, Error>>) -> (Vec<T>, Option<Error>) {
     let mut ret_vec = Vec::new();
     for v in vec.into_iter() {
         match v {
-            Err(_) => { return (ret_vec, true); },
+            Err(err2) => { return (ret_vec, Some(err2)); },
             Ok(v2) => { ret_vec.push(v2); }
         }
     }
-    return (ret_vec, false);
+    return (ret_vec, None);
 }
 
 pub fn join_string_vec(v: &Vec<char>) -> String{
@@ -184,12 +184,12 @@ mod tests {
     fn test1() {
         let v = vec![Ok(4),Ok(3),Ok(3)];
         let a = extract_value_from_result_vec(v);
-        assert!(!a.1);
+        assert!(a.1.is_none());
         assert_eq!(vec![4,3,3], a.0);
 
         let v = vec![Ok(4),Err(error::any_error(error::Kind::OverflowError, "Overflow".to_string())),Ok(3)];
         let a = extract_value_from_result_vec(v);
-        assert!(a.1);
+        assert!(a.1.is_some());
         assert_eq!(vec![4], a.0);
     }
 

@@ -40,7 +40,7 @@ T: Clone + 'static
         let a = accumulate(_len_vec);
         let mut _len_vec3 = extract_value_from_result_vec(a.collect::<Vec<_>>());
         println!("{:?}", _len_vec3);
-        if _len_vec3.1 {
+        if _len_vec3.1.is_some() {
             accumulate_overflow = true;
         }
 

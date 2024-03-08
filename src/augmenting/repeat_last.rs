@@ -65,9 +65,9 @@ mod tests {
     fn test1() {
 
         let rl = repeat_last(iter_from_vec(vec![1,2,3]), 0);
-        assert_eq!((vec![1, 2, 3, 3, 3], false), extract_value_from_result_vec(islice(rl, 0, 5, 1).collect::<Vec<_>>()));
+        assert_eq!((vec![1, 2, 3, 3, 3], None), extract_value_from_result_vec(islice(rl, 0, 5, 1).collect::<Vec<_>>()));
 
         let rl = repeat_last(iter_from_vec(Vec::<i32>::new()), 42);
-        assert_eq!((vec![42,42,42,42,42], false), extract_value_from_result_vec(islice(rl, 0, 5, 1).collect::<Vec<_>>()));
+        assert_eq!((vec![42,42,42,42,42], None), extract_value_from_result_vec(islice(rl, 0, 5, 1).collect::<Vec<_>>()));
     }
 }

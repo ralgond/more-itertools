@@ -136,7 +136,7 @@ mod tests {
         let v = generate_okok_iterator(vec![1,2,3]);
         let ret = map(v, |x| {Ok(x==3)});
         let ret = extract_value_from_result_vec(ret.collect::<Vec<_>>());
-        assert!(!ret.1);
+        assert!(ret.1.is_none());
         assert_eq!(vec![false,false,true], ret.0);
     }
 
@@ -145,7 +145,7 @@ mod tests {
         let v = generate_okokerr_iterator(vec![1,2,3], error::overflow_error("for test".to_string()));
         let ret = map(v, |x| {Ok(x==3)});
         let ret = extract_value_from_result_vec(ret.collect::<Vec<_>>());
-        assert!(ret.1);
+        assert!(ret.1.is_some());
         assert_eq!(vec![false,false,true], ret.0);
     }
 
@@ -155,7 +155,7 @@ mod tests {
         let v1 = generate_okok_iterator(vec![2,3,4]);
         let ret = map2(v0, v1, |x,y| {Ok(x*y)});
         let ret = extract_value_from_result_vec(ret.collect::<Vec<_>>());
-        assert!(!ret.1);
+        assert!(ret.1.is_none());
         assert_eq!(vec![2,6,12], ret.0);
     }
 

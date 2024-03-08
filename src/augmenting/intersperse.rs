@@ -89,15 +89,15 @@ mod tests {
         assert_eq!(None, isp.next());
 
         let isp = intersperse(0, iter_from_vec(vec![1,2,3,4,5]), 1);
-        assert_eq!((vec![1, 0, 2, 0, 3, 0, 4, 0, 5], false), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
+        assert_eq!((vec![1, 0, 2, 0, 3, 0, 4, 0, 5], None), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
 
         let isp = intersperse(0, iter_from_vec(vec![1,2,3,4,5]), 2);
-        assert_eq!((vec![1, 2, 0, 3, 4, 0, 5], false), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
+        assert_eq!((vec![1, 2, 0, 3, 4, 0, 5], None), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
 
         let isp = intersperse(0, iter_from_vec(vec![1]), 1);
-        assert_eq!((vec![1], false), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
+        assert_eq!((vec![1], None), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
 
         let isp = intersperse(0, iter_from_vec(vec![1]), 2);
-        assert_eq!((vec![1], false), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
+        assert_eq!((vec![1], None), extract_value_from_result_vec(isp.collect::<Vec<_>>()));
     }
 }

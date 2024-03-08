@@ -49,7 +49,7 @@ mod tests {
 
         let a = accumulate(v);
 
-        assert_eq!((vec![4, 7, 10], false), extract_value_from_result_vec(a.collect::<Vec<_>>()));
+        assert_eq!((vec![4, 7, 10], None), extract_value_from_result_vec(a.collect::<Vec<_>>()));
     }
 
 }

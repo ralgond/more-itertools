@@ -1,111 +1,230 @@
-// use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
+use crate::error::{self, Error};
+use crate::itertools::iter::iter_from_result_vec;
+use crate::others::cache_last::{cache_last, CacheLast};
 
-// struct BeforeAndAfterInner<T>
-// where
-// T: Clone
-// {
-//     before: Vec<T>,
-//     the_one: Option<T>,
-//     consumed_the_one: bool,
-//     after: Option<Box<dyn Iterator<Item=T>>>,
-// }
+struct BeforeAndAfterInner<T>
+where
+T: Clone
+{
+    before: Box<dyn Iterator<Item = Result<T,Error>>>,
+    cl: CacheLast<T>,
+    cl_iter: Box<dyn Iterator<Item = Result<T,Error>>>,
+    err: Option<Error>,
+    iter_finished: bool
+}
 
-// struct BeforeAndAfter<T> 
-// where
-// T: Clone
-// {
-//     inner: Rc<RefCell<BeforeAndAfterInner<T>>>
-// }
+impl<T> BeforeAndAfterInner<T> 
+where
+T: Clone + 'static {
+    pub fn new(iter: Box<dyn Iterator<Item = Result<T,Error>>>, 
+                predicate: fn(item: &T) -> Result<bool, Error>) -> Self {
+        let mut cl = cache_last(iter);
+        let mut cl_iter = cl.iter();
+        let mut before = Vec::<Result<T,Error>>::new();
+        let mut err: Option<Error> = None;
+        let mut iter_finished: bool = false;
 
-// struct BeforeCursor<T> 
-// where
-// T: Clone
-// {
-//     inner: Rc<RefCell<BeforeAndAfterInner<T>>>
-// }
+        loop {
+            if let Some(ret) = cl_iter.next() {
+                if ret.is_err() {
+                    err = Some(ret.err().unwrap().clone());
+                    break;
+                }
 
-// struct AfterCursor<T> 
-// where
-// T: Clone
-// {
-//     inner: Rc<RefCell<BeforeAndAfterInner<T>>>
-// }
+                let pred_result = predicate(&ret.clone().ok().unwrap());
+                if pred_result.is_err() {
+                    let pred_err = pred_result.err().unwrap();
+                    err = Some(error::any_error(pred_err.kind(), "[before_and_after] ".to_string() + pred_err.message().unwrap()));
+                    break;
+                }
 
-// impl<T> Iterator for AfterCursor<T>    
-// where
-// T: Clone
-// {
-//     type Item = T;
+                if pred_result.ok().unwrap() {
+                    before.push(ret);
+                } else {
+                    break;
+                }
+            } else {
+                iter_finished = true;
+                break;
+            }
+        } 
 
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let mut inner = self.inner.borrow_mut();
+        cl.insert_last_to_head();
+        
+        let ret = BeforeAndAfterInner {
+            before: iter_from_result_vec(before),
+            cl,
+            cl_iter,
+            err,
+            iter_finished
+        };
 
-//         if !inner.consumed_the_one {
-//             inner.consumed_the_one = true;
-//             match &inner.the_one {
-//                 None => { return None; },
-//                 Some(v) => { return Some(v.clone()); }
-//             }
-//             //return None;
-//         } else {
-//             match &mut inner.after {
-//                 None => { return None; }
-//                 Some(v) => {
-//                     return v.next();
-//                 }
-//             }
-//         }
-//     }
-// }
+        return ret;
+    }
+}
+
+pub struct BeforeAndAfter<T> 
+where
+T: Clone
+{
+    inner: Rc<RefCell<BeforeAndAfterInner<T>>>
+}
+
+impl<T> BeforeAndAfter<T> 
+where
+T: Clone + 'static
+{
+    pub fn new(iter: Box<dyn Iterator<Item = Result<T,Error>>>,
+                predicate: fn(item: &T) -> Result<bool, Error>) -> Self {
+        let inner = BeforeAndAfterInner::new(iter, predicate);
+
+        let ret = BeforeAndAfter {
+            inner: Rc::new(RefCell::new(inner))
+        };
+
+        return ret;
+    }
+
+    pub fn iter(&self) -> (Box<dyn Iterator<Item=Result<T,Error>>>, Box<dyn Iterator<Item=Result<T,Error>>>) {
+        let ret_before = Box::new(BeforeCursor {
+            err: self.inner.borrow_mut().err.clone(),
+            iter_finished: false,
+            inner: Rc::clone(&self.inner)
+        });
+
+        let ret_after = Box::new(AfterCursor {
+            err: self.inner.borrow_mut().err.clone(),
+            iter_finished: false,
+            inner: Rc::clone(&self.inner)
+        });
+
+        return (ret_before, ret_after);
+    }
+}
+
+struct BeforeCursor<T> 
+where
+T: Clone
+{
+    err: Option<Error>,
+    iter_finished: bool,
+    inner: Rc<RefCell<BeforeAndAfterInner<T>>>
+}
+
+struct AfterCursor<T> 
+where
+T: Clone
+{
+    err: Option<Error>,
+    iter_finished: bool,
+    inner: Rc<RefCell<BeforeAndAfterInner<T>>>
+}
+
+impl<T> Iterator for AfterCursor<T>    
+where
+T: Clone
+{
+    type Item = Result<T, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut inner = self.inner.borrow_mut();
+
+        if self.iter_finished {
+            return None;
+        }
+
+        if let Some(_err) = &self.err {
+            self.iter_finished = true;
+            return Some(Err(_err.clone()));
+        }
+
+        let _next = inner.cl_iter.next();
+        if let Some(_next_v) = _next {
+            return Some(_next_v);
+        } else {
+            self.iter_finished = true;
+            return None;
+        }
+    }
+}
+
+impl<T> Iterator for BeforeCursor<T>    
+where
+T: Clone
+{
+    type Item = Result<T, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut inner = self.inner.borrow_mut();
+
+        if self.iter_finished {
+            return None;
+        }
+
+        if let Some(_err) = &self.err {
+            self.iter_finished = true;
+            return Some(Err(_err.clone()));
+        }
+
+        let _next = inner.before.next();
+        if let Some(_next_v) = _next {
+            return Some(_next_v);
+        } else {
+            self.iter_finished = true;
+            return None;
+        }
+    }
+}
 
 
-// pub fn before_and_after<T> (iterable: Box<dyn Iterator<Item=T>>, predicate: fn(item: &T)->bool) -> BeforeAndAfter<T>
-// where
-//     T: Clone,
-// {
-//     let mut ret = BeforeAndAfter {
-//         before: Vec::new(),
-//         after: None,
-//         the_one: None,
-//         consumed_the_one: false
-//     };
+pub fn before_and_after<T> (iter: Box<dyn Iterator<Item=Result<T,Error>>>, 
+    predicate: fn(item: &T)->Result<bool,Error>) -> (Box<dyn Iterator<Item=Result<T,Error>>>, Box<dyn Iterator<Item=Result<T,Error>>>)
+where
+    T: Clone + 'static
+{
+    let baa = BeforeAndAfter::new(iter, predicate);
+    return baa.iter();
+}
 
-//     let mut into_iter = iterable.into_iter();
+#[cfg(test)]
+mod tests {
 
-//     loop {
-//         match into_iter.next() {
-//             None => {break;}
-//             Some(ret_val) => {
-//                 if predicate(&ret_val) {
-//                     ret.before.push(ret_val);
-//                 } else {
-//                     ret.the_one = Some(ret_val);
-//                     ret.after = Some(into_iter);
-//                     break;
-//                 }
-//             }
-//         }
-//     } 
+    use crate::utils::{extract_value_from_result_vec, generate_okok_iterator};
 
-//     return ret;
-// }
+    use super::*;
 
-// #[cfg(test)]
-// mod tests {
+    #[test]
+    fn test1() {
+        let v1 = String::from("ABCdEfGhI");
+        let (baa_before_iter, baa_after_iter) = before_and_after(generate_okok_iterator(v1.chars().collect()), |x: &char| { return Ok(x.is_ascii_uppercase()) });
 
-//     use crate::itertools::iter::iter_from_vec;
+        assert_eq! (vec!['A', 'B', 'C'], extract_value_from_result_vec(baa_before_iter.collect()).0);
 
-//     use super::*;
+        let v = baa_after_iter.collect::<Vec<_>>();
+        assert_eq!(vec!['d', 'E', 'f', 'G', 'h', 'I'], extract_value_from_result_vec(v).0);
+    }
 
-//     #[test]
-//     fn test1() {
-//         let v1 = String::from("ABCdEfGhI");
-//         let baa = before_and_after(iter_from_vec(v1.chars().collect()), |x: &char| { x.is_ascii_uppercase() });
+    #[test]
+    fn test2() {
+        let v1 = String::from("ABC");
+        let (baa_before_iter, baa_after_iter) = before_and_after(generate_okok_iterator(v1.chars().collect()), |x: &char| { return Ok(x.is_ascii_uppercase()) });
 
-//         assert_eq! (vec!['A', 'B', 'C'], baa.before);
+        assert_eq! (vec!['A', 'B', 'C'], extract_value_from_result_vec(baa_before_iter.collect()).0);
 
-//         let v = baa.collect::<Vec<_>>();
-//         assert_eq!(vec!['d', 'E', 'f', 'G', 'h', 'I'], v);
-//     }
+        let v = baa_after_iter.collect::<Vec<_>>();
+        assert_eq!(Vec::<char>::new(), extract_value_from_result_vec(v).0);
+    }
 
-// }
+    #[test]
+    fn test3() {
+        let v1 = String::from("abc");
+        let (baa_before_iter, baa_after_iter) = before_and_after(generate_okok_iterator(v1.chars().collect()), |x: &char| { return Ok(x.is_ascii_uppercase()) });
+
+        assert_eq! (Vec::<char>::new(), extract_value_from_result_vec(baa_before_iter.collect()).0);
+
+        let v = baa_after_iter.collect::<Vec<_>>();
+        assert_eq!(vec!['a', 'b', 'c'], extract_value_from_result_vec(v).0);
+    }
+
+}

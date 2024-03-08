@@ -87,6 +87,10 @@ T: Clone + 'static
             return;
         }
 
+        if inner.last_item.is_none() {
+            return;
+        }
+
         inner.emmit_last_next_loop = true;
     }
 }
@@ -121,6 +125,18 @@ mod tests {
         assert_eq!(3, iter.next().unwrap().ok().unwrap());
         assert_eq!(4, iter.next().unwrap().ok().unwrap());
         assert_eq!(5, iter.next().unwrap().ok().unwrap());
+        assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn test2() {
+        let v = generate_okok_iterator(Vec::<i32>::new());
+
+        let mut cl = cache_last(v);
+
+        let mut iter = cl.iter();
+
+        assert_eq!(None, iter.next());
         assert_eq!(None, iter.next());
     }
 }
