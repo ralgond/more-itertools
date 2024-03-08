@@ -83,9 +83,9 @@ T: Clone + 'static
 
     pub fn insert_last_to_head(&mut self) {
         let mut inner = self.cl_inner.borrow_mut();
-        if inner.iter_finished {
-            return;
-        }
+        // if inner.iter_finished {
+        //     return;
+        // }
 
         if inner.last_item.is_none() {
             return;
