@@ -48,7 +48,7 @@ where T: Clone
             return Some(_next2);
         } else {
             inner.iter_finished = true;
-            inner.last_item = None;
+            //inner.last_item = None;
             return None;
         }
     }
@@ -92,6 +92,20 @@ T: Clone + 'static
         }
 
         inner.emmit_last_next_loop = true;
+    }
+
+    pub fn is_empty(&self) -> bool {
+        let inner = self.cl_inner.borrow_mut();
+
+        return inner.last_item.is_none() && inner.iter_finished;
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.cl_inner.borrow_mut().iter_finished
+    }
+
+    pub fn get_last_item(&self) -> Option<Result<T, Error>> {
+        self.cl_inner.borrow_mut().last_item.clone()
     }
 }
 
