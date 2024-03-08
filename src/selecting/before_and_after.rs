@@ -190,7 +190,7 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::utils::{extract_value_from_result_vec, generate_okok_iterator};
+    use crate::utils::{extract_value_from_result_vec, generate_okok_iterator, generate_okokerr_iterator};
 
     use super::*;
 
@@ -225,6 +225,39 @@ mod tests {
 
         let v = baa_after_iter.collect::<Vec<_>>();
         assert_eq!(vec!['a', 'b', 'c'], extract_value_from_result_vec(v).0);
+    }
+
+    #[test]
+    fn test4() {
+        let v1 = String::from("abc");
+        let (baa_before_iter, baa_after_iter) = before_and_after(
+            generate_okokerr_iterator(v1.chars().collect(), error::overflow_error("for test".to_string())), 
+            |x: &char| { return Ok(x.is_ascii_uppercase()) });
+
+        assert_eq! (Vec::<char>::new(), extract_value_from_result_vec(baa_before_iter.collect()).0);
+
+        let v = baa_after_iter.collect::<Vec<_>>();
+        let ret = extract_value_from_result_vec(v);
+        assert!(ret.1.is_some());
+        assert_eq!(vec!['a', 'b', 'c'], ret.0);
+    }
+
+    #[test]
+    fn test5() {
+        let v1 = String::from("ABC");
+        let (baa_before_iter, baa_after_iter) = before_and_after(
+            generate_okokerr_iterator(v1.chars().collect(), error::overflow_error("for test".to_string())), 
+            |x: &char| { return Ok(x.is_ascii_uppercase()) });
+
+
+        let ret = extract_value_from_result_vec(baa_before_iter.collect());
+        assert_eq! (Vec::<char>::new(), ret.0);
+        assert!(ret.1.is_some());
+
+        let v = baa_after_iter.collect::<Vec<_>>();
+        let ret = extract_value_from_result_vec(v);
+        assert!(ret.1.is_some());
+        assert_eq!(Vec::<char>::new(), ret.0);
     }
 
 }
