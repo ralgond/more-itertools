@@ -35,6 +35,16 @@ pub fn any(v: &Vec<bool>) -> bool {
     return false;
 }
 
+pub fn any1(v: Vec<bool>) -> Result<bool,Error> {
+    for i in v.iter() {
+        if *i {
+            return Ok(true);
+        }
+    }
+    return Ok(false);
+}
+
+
 
 // pub fn any_result(v: Result<Vec<bool>, Error>) -> bool {
 //     if v.is_err() {
