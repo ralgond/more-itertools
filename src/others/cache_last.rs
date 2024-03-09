@@ -81,6 +81,17 @@ T: Clone + 'static
         return ret0;
     }
 
+    pub fn iter_with_emit_first(&mut self) -> Box<dyn Iterator<Item = Result<T,Error>>> {
+        let mut ret0: Box<dyn Iterator<Item=Result<T,Error>>> = Box::new(CacheLastIter {
+            cl_inner: Rc::clone(&self.cl_inner)
+        });
+
+        ret0.next();
+        self.insert_last_to_head();
+
+        return ret0;
+    }
+
     pub fn insert_last_to_head(&mut self) {
         let mut inner = self.cl_inner.borrow_mut();
         // if inner.iter_finished {
