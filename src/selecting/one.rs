@@ -2,47 +2,52 @@ use crate::error::Error;
 use crate::error;
 use crate::look_ahead_back::spy::spy;
 
-pub fn one<T>(iter: &mut Box<dyn Iterator<Item = T>>) -> Result<T, Error> 
+pub fn one<T>(iter: Box<dyn Iterator<Item = Result<T,Error>>>) -> Option<Result<T, Error>> 
 where 
 T: Clone + 'static
 {
-    let result;
     let ret = spy(iter, 2);
-    match ret {
-        None => { return Err(error::value_error("too short".to_string())); },
-        Some(vec) => {
-            if vec.len() > 1 {
-                return Err(error::value_error("too long".to_string()));
-            } else if vec.len() == 0 {
-                return Err(error::value_error("too short".to_string()));
-            } else {
-                result = vec[0].clone();
+    if let Some(v_ret) = ret {
+        match v_ret {
+            Ok(ok_v_ret) => {
+                if ok_v_ret.len() > 1 {
+                    return Some(Err(error::value_error("[one:too long]".to_string())));
+                } else if ok_v_ret.len() == 0 {
+                    return Some(Err(error::value_error("[one:too short]".to_string())));
+                } else {
+                    let result = ok_v_ret[0].clone();
+                    return Some(Ok(result));
+                }
+            },
+            Err(err_v_ret) => { // upstream error
+                return Some(Err(err_v_ret));
             }
         }
+    } else {
+        return Some(Err(error::value_error("[one:too short]".to_string())));
     }
-
-    return Ok(result);
 }
 
 
 #[cfg(test)]
 mod tests {
-    use crate::itertools::iter::iter_from_vec;
+
+    use crate::utils::generate_okok_iterator;
 
     use super::*;
 
     #[test]
     fn test1() {
-        let mut v1 = iter_from_vec(Vec::<i32>::new());
-        let ret1 = one(&mut v1);
-        assert_eq!(*ret1.err().unwrap().message().unwrap(), String::from("too short"));
+        let v1 = generate_okok_iterator(Vec::<i32>::new());
+        let ret1 = one(v1);
+        assert_eq!(*ret1.unwrap().err().unwrap().message().unwrap(), String::from("[one:too short]"));
 
-        let mut v1 = iter_from_vec(vec!["too".to_string(), "many".to_string()]);
-        let ret1 = one(&mut v1);
-        assert_eq!(*ret1.err().unwrap().message().unwrap(), String::from("too long"));
+        let v1 = generate_okok_iterator(vec!["too".to_string(), "many".to_string()]);
+        let ret1 = one(v1);
+        assert_eq!(*ret1.unwrap().err().unwrap().message().unwrap(), String::from("[one:too long]"));
 
-        let mut v1 = iter_from_vec(vec!["too".to_string()]);
-        let ret1 = one(&mut v1);
-        assert_eq!(*ret1.ok().unwrap(), String::from("too"));
+        let v1 = generate_okok_iterator(vec!["too".to_string()]);
+        let ret1 = one(v1);
+        assert_eq!(*ret1.unwrap().ok().unwrap(), String::from("too"));
     }
 }

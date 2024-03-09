@@ -1,5 +1,4 @@
 use crate::error::Error;
-use crate::error;
 use crate::others::cache_last::cache_last;
 
 /// https://more-itertools.readthedocs.io/en/v10.2.0/_modules/more_itertools/more.html#nth_or_last
