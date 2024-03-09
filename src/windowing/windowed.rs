@@ -8,10 +8,11 @@ where
 T: Clone + Debug + 'static
  {
     buf: VecDeque<T>,
-    iter: Box<dyn Iterator<Item=T>>,
+    iter: Box<dyn Iterator<Item=Result<T,Error>>>,
     n: usize,
     step: usize,
-    cache_first_window: bool
+    cache_first_window: bool,
+    iter_finished: bool
 }
 
 impl<T> Iterator for Windowed<T> 
@@ -21,15 +22,28 @@ T: Clone + Debug + 'static
     type Item = Result<Vec<T>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.iter_finished {
+            return None;
+        }
+
         if self.n == 0 {
-            return Some(Err(error::value_error(String::from("n should not be 0."))));
+            return Some(Err(error::value_error(String::from("[windowed:n should not be 0]"))));
         }
 
         if !self.cache_first_window {
             for _ in 0..self.n {
                 match self.iter.next() {
                     Some(v) => {
-                        self.buf.push_back(v);
+                        match v {
+                            Ok(ok_v) => {
+                                self.buf.push_back(ok_v);
+                            },
+                            Err(err_v) => { // upstream error
+                                self.iter_finished = true;
+                                return Some(Err(err_v));
+                            }
+                        }
+                        
                     },
                     None => {
                         break;
@@ -54,15 +68,21 @@ T: Clone + Debug + 'static
             self.buf.pop_front();
             match self.iter.next() {
                 Some(v) => {
-                    self.buf.push_back(v);
+                    match v {
+                        Ok(ok_v) => {
+                            self.buf.push_back(ok_v);
+                        },
+                        Err(err_v) => { // upstream error
+                            self.iter_finished = true;
+                            return Some(Err(err_v));
+                        }
+                    }
                 },
                 None => {
                     break;
                 }
             }
         }
-
-
 
         if self.buf.len() < self.n {
             return None;
@@ -76,7 +96,7 @@ T: Clone + Debug + 'static
 }
 
 /// https://more-itertools.readthedocs.io/en/v10.2.0/api.html#more_itertools.windowed
-pub fn windowed<T>(iter: Box<dyn Iterator<Item=T>>, n: usize, step: usize) -> Box<dyn Iterator<Item=Result<Vec<T>, Error>>> 
+pub fn windowed<T>(iter: Box<dyn Iterator<Item=Result<T,Error>>>, n: usize, step: usize) -> Box<dyn Iterator<Item=Result<Vec<T>, Error>>> 
 where
 T: Clone + Debug + 'static
 {
@@ -84,8 +104,9 @@ T: Clone + Debug + 'static
         buf: VecDeque::new(),
         iter,
         n,
-        step: step,
-        cache_first_window: false
+        step,
+        cache_first_window: false,
+        iter_finished: false
     })
 }
 
@@ -93,14 +114,14 @@ T: Clone + Debug + 'static
 mod tests {
     use std::vec;
 
-    use crate::itertools::iter::iter_from_vec;
+    use crate::utils::generate_okok_iterator;
 
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3,4,5];
-        let mut w = windowed(iter_from_vec(v), 3, 1);
+        let mut w = windowed(generate_okok_iterator(v), 3, 1);
 
         assert_eq!(vec![1,2,3], w.next().unwrap().ok().unwrap());
         assert_eq!(vec![2,3,4], w.next().unwrap().ok().unwrap());
@@ -111,7 +132,7 @@ mod tests {
     #[test]
     fn test2() {
         let v = vec![1,2,3,4,5,6,7,8];
-        let mut w = windowed(iter_from_vec(v), 3, 2);
+        let mut w = windowed(generate_okok_iterator(v), 3, 2);
         assert_eq!(vec![1,2,3], w.next().unwrap().ok().unwrap());
         assert_eq!(vec![3,4,5], w.next().unwrap().ok().unwrap());
         assert_eq!(vec![5,6,7], w.next().unwrap().ok().unwrap());
@@ -121,11 +142,11 @@ mod tests {
     #[test]
     fn test3() {
         let v = vec![1,2];
-        let mut w = windowed(iter_from_vec(v), 3, 1);
+        let mut w = windowed(generate_okok_iterator(v), 3, 1);
         assert_eq!(None, w.next());
 
         let v = vec![1,2];
-        let mut w = windowed(iter_from_vec(v), 0, 1);
+        let mut w = windowed(generate_okok_iterator(v), 0, 1);
         assert_eq!(error::Kind::ValueError, w.next().unwrap().err().unwrap().kind());
     }
 }

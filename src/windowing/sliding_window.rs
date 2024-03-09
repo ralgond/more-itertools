@@ -21,7 +21,7 @@ T: Clone + Debug + 'static
     }
 }
 
-pub fn sliding_windowed<T>(iter: Box<dyn Iterator<Item=T>>, n: usize) -> Box<dyn Iterator<Item=Result<Vec<T>, Error>>> 
+pub fn sliding_windowed<T>(iter: Box<dyn Iterator<Item=Result<T,Error>>>, n: usize) -> Box<dyn Iterator<Item=Result<Vec<T>, Error>>> 
 where
 T: Clone + Debug + 'static
 {
@@ -33,7 +33,8 @@ T: Clone + Debug + 'static
 
 #[cfg(test)]
 mod tests {
-    use crate::itertools::iter::iter_from_vec;
+
+    use crate::utils::generate_okok_iterator;
 
     use super::*;
 
@@ -41,7 +42,7 @@ mod tests {
     fn test1() {
         let v = vec![0,1,2,3,4,5];
 
-        let mut w = sliding_windowed(iter_from_vec(v), 4);
+        let mut w = sliding_windowed(generate_okok_iterator(v), 4);
         match w.next().unwrap() {
             Ok(v) => { assert_eq!(vec![0,1,2,3], v); }
             Err(_) => { assert!(false); }
@@ -63,7 +64,7 @@ mod tests {
     #[test]
     fn test2() {
         let v = vec![0,1,2];
-        let mut w = sliding_windowed(iter_from_vec(v), 4);
+        let mut w = sliding_windowed(generate_okok_iterator(v), 4);
         match w.next() {
             Some(_) => { assert!(false); }
             None => { assert!(true); }

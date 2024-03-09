@@ -1,28 +1,37 @@
 use crate::error::Error;
 use crate::error;
 
-#[derive(Debug, Clone)]
-pub struct WindowedComplete<I>
+pub struct WindowedComplete<T>
 where 
-    I: Iterator,
-    I::Item: Clone
+T: Clone + 'static
  {
-    buf: Vec<I::Item>,
-    iter: I,
+    buf: Vec<T>,
+    iter: Box<dyn Iterator<Item=Result<T,Error>>>,
     n: usize,
-    cur: usize
+    cur: usize,
+    iter_finished: bool,
+    upstream_error: Option<Error>
 }
 
-impl<I> Iterator for WindowedComplete<I> 
+impl<T> Iterator for WindowedComplete<T> 
 where 
-    I: Iterator,
-    I::Item: Clone
+T: Clone + 'static
 {
-    type Item = Result<(Vec<<I as Iterator>::Item>, Vec<<I as Iterator>::Item>, Vec<<I as Iterator>::Item>), Error>;
+    type Item = Result<(Vec<T>, Vec<T>, Vec<T>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.iter_finished {
+            return None;
+        }
+
         if self.n > self.buf.len() {
-            return Some(Err(error::value_error("n must be <= len(seq)".to_string())));
+            self.iter_finished = true;
+            return Some(Err(error::value_error("[windowed_complete:n must be <= len(seq)]".to_string())));
+        }
+
+        if let Some(v_upstream_error) = &self.upstream_error {
+            self.iter_finished = true;
+            return Some(Err(v_upstream_error.clone()));
         }
 
         if self.cur + self.n > self.buf.len() {
@@ -52,38 +61,47 @@ where
 
 
 /// https://more-itertools.readthedocs.io/en/v10.2.0/api.html#more_itertools.windowed_complete
-pub fn windowed_complete<I>(iterable: I, n: usize) -> WindowedComplete<I::IntoIter>
+pub fn windowed_complete<T>(iter: Box<dyn Iterator<Item=Result<T,Error>>>, n: usize) -> Box<dyn Iterator<Item=Result<(Vec<T>, Vec<T>, Vec<T>), Error>>>
 where
-    I: IntoIterator,
-    I::Item: Clone
+T: Clone + 'static
 {
     let mut ret = WindowedComplete {
         buf: Vec::new(),
-        iter: iterable.into_iter(),
-        n: n,
-        cur: 0
+        iter,
+        n,
+        cur: 0,
+        iter_finished: false,
+        upstream_error: None
     };
 
     loop {
-        let item = ret.iter.next();
-        match item {
-            None => { break; }
-            Some(v) => {
-                ret.buf.push(v);
+        if let Some(item) = ret.iter.next() {
+            match item {
+                Ok(ok_item) => {
+                    ret.buf.push(ok_item);
+                },
+                Err(err_item) => {
+                    ret.upstream_error = Some(err_item);
+                    break;
+                }
             }
+        } else {
+            break;
         }
     }
 
-    return ret;
+    return Box::new(ret);
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::utils::generate_okok_iterator;
+
     use super::*;
 
     #[test]
     fn test1() {
-        let v = vec![0,1,2,3,4,5,6];
+        let v = generate_okok_iterator(vec![0,1,2,3,4,5,6]);
 
         let mut wc = windowed_complete(v, 3);
 
