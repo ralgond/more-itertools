@@ -1,87 +1,68 @@
+use crate::error::Error;
 
-pub struct Padded<T> 
-where
-T: Clone
-{
-    iter: Box<dyn Iterator<Item=T>>,
-    fill_value: T,
-    n: usize,
-    next_multiple: bool,
-    offset: usize,
+struct Padded<T> {
+    iter: Box<dyn Iterator<Item = Result<T,Error>>>,
     iter_finished: bool,
-    __n: usize
+    iter_count: usize,
+    count: usize,
+    fill_value: T,
+    error: Option<Error>
 }
 
+impl <T> Padded<T>
+where T: Clone + 'static {
+    pub fn try_return_fill_value_or_none(&mut self) -> Option<Result<T,Error>> {
+        if self.iter_count < self.count {
+            self.iter_count += 1;
+            return Some(Ok(self.fill_value.clone()));
+        } else {
+            return None
+        }
+    }
+}
 
-impl<T> Iterator for Padded<T>
-where
-T: Clone
+impl <T> Iterator for Padded<T>
+where T: Clone + 'static
 {
-    type Item = T;
+    type Item = Result<T,Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.next_multiple {
-            if !self.iter_finished {
-                let _next = self.iter.next();
-                match _next {
-                    None => {
-                        self.iter_finished = true;
-                        for i in 1.. {
-                            self.__n = self.n * i;
-                            if self.__n >= self.offset {
-                                break;
-                            }
-                        }
-                    },
-                    Some(v) => {
-                        self.offset += 1;
-                        return Some(v);
-                    }
-                }
-            }
-
-            if self.__n <= self.offset {
+        if self.iter_finished {
+            if self.error.is_some() {
                 return None;
-            } else {
-                self.offset += 1;
-                return Some(self.fill_value.clone());
             }
+            return self.try_return_fill_value_or_none();
         } else {
-            if !self.iter_finished {
-                let _next = self.iter.next();
+            if let Some(_next) = self.iter.next() {
+                self.iter_count += 1;
                 match _next {
-                    None => {
-                        self.iter_finished = true;
+                    Ok(ok_v) => { 
+                        return Some(Ok(ok_v));
                     },
-                    Some(v) => {
-                        self.offset += 1;
-                        return Some(v);
+                    Err(err_v) => { // upstream error
+                        self.iter_finished = true;
+                        self.error = Some(err_v);
+                        return Some(Err(self.error.as_ref().unwrap().clone()));
                     }
                 }
-            }
-
-            if self.n <= self.offset {
-                return None;
             } else {
-                self.offset += 1;
-                return Some(self.fill_value.clone());
+                self.iter_finished = true;
+                return self.try_return_fill_value_or_none();
             }
         }
     }
 }
 
-pub fn padded<T>(iter: Box<dyn Iterator<Item=T>>, fill_value: T, n: usize, next_multiple: bool) -> Box<dyn Iterator<Item=T>>
-where
-T: Clone + 'static
+pub fn padded<T>(iter: Box<dyn Iterator<Item = Result<T,Error>>>, fill_value: T, count: usize) -> Box<dyn Iterator<Item = Result<T,Error>>> 
+where T: Clone + 'static
 {
     Box::new(Padded {
         iter,
-        fill_value,
-        n,
-        next_multiple,
-        offset: 0,
         iter_finished: false,
-        __n: 0
+        iter_count: 0,
+        count,
+        fill_value,
+        error: None
     })
 }
 
@@ -89,37 +70,44 @@ T: Clone + 'static
 mod tests {
     use std::vec;
 
-    use crate::itertools::iter::iter_from_vec;
+    use crate::{error, utils::{extract_value_from_result_vec, generate_okok_iterator, generate_okokerr_iterator}};
 
     use super::*;
 
     #[test]
     fn test1() {
         let v = vec![1,2,3];
-        let p = padded(iter_from_vec(v), 0, 5, false);
-        assert_eq!(vec![1,2,3,0,0], p.collect::<Vec<_>>());
+        let p = padded(generate_okok_iterator(v), 0, 5);
+        assert_eq!(vec![1,2,3,0,0], extract_value_from_result_vec(p.collect::<Vec<_>>()).0);
 
         let v = vec![1,2,3];
-        let p = padded(iter_from_vec(v), 0, 2, false);
-        assert_eq!(vec![1,2,3], p.collect::<Vec<_>>());
-    }
-
-    #[test]
-    fn test2() {
-        let v = vec![1,2,3];
-        let p = padded(iter_from_vec(v), 0, 5, true);
-        assert_eq!(vec![1,2,3,0,0], p.collect::<Vec<_>>());
+        let p = padded(generate_okok_iterator(v), 0, 2);
+        assert_eq!(vec![1,2,3], extract_value_from_result_vec(p.collect::<Vec<_>>()).0);
 
         let v = vec![1,2,3];
-        let p = padded(iter_from_vec(v), 0, 2, true);
-        assert_eq!(vec![1,2,3,0], p.collect::<Vec<_>>());
-
-        let v = vec![1,2,3,4];
-        let p = padded(iter_from_vec(v), 0, 2, true);
-        assert_eq!(vec![1,2,3,4], p.collect::<Vec<_>>());
-
-        let v = vec![1,2,3,4];
-        let p = padded(iter_from_vec(v), 0, 4, true);
-        assert_eq!(vec![1,2,3,4], p.collect::<Vec<_>>());
+        let p = padded(generate_okokerr_iterator(v,error::overflow_error("[test]".to_string())), 0, 2);
+        let ret = extract_value_from_result_vec(p.collect::<Vec<_>>());
+        assert_eq!(vec![1,2,3], ret.0);
+        assert_eq!(error::Kind::OverflowError, ret.1.unwrap().kind());
     }
 }
+
+//     #[test]
+//     fn test2() {
+//         let v = vec![1,2,3];
+//         let p = padded(iter_from_vec(v), 0, 5, true);
+//         assert_eq!(vec![1,2,3,0,0], p.collect::<Vec<_>>());
+
+//         let v = vec![1,2,3];
+//         let p = padded(iter_from_vec(v), 0, 2, true);
+//         assert_eq!(vec![1,2,3,0], p.collect::<Vec<_>>());
+
+//         let v = vec![1,2,3,4];
+//         let p = padded(iter_from_vec(v), 0, 2, true);
+//         assert_eq!(vec![1,2,3,4], p.collect::<Vec<_>>());
+
+//         let v = vec![1,2,3,4];
+//         let p = padded(iter_from_vec(v), 0, 4, true);
+//         assert_eq!(vec![1,2,3,4], p.collect::<Vec<_>>());
+//     }
+// }
