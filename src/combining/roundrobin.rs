@@ -1,7 +1,9 @@
+use crate::error::Error;
+
 use super::interleave_longest::interleave_longest;
 
 
-pub fn roundrobin<T>(iter_vec: Vec<Box<dyn Iterator<Item = T>>>) -> Box<dyn Iterator<Item = T>> 
+pub fn roundrobin<T>(iter_vec: Vec<Box<dyn Iterator<Item = Result<T,Error>>>>) -> Box<dyn Iterator<Item = Result<T,Error>>> 
 where
 T: Clone + 'static
 {
@@ -11,18 +13,18 @@ T: Clone + 'static
 #[cfg(test)]
 mod tests {
 
-    use crate::itertools::iter::iter_from_vec;
+    use crate::utils::{extract_value_from_result_vec, generate_okok_iterator};
 
     use super::*;
 
     #[test]
     fn test1() {
         let mut v = Vec::new();
-        v.push(iter_from_vec("ABC".chars().collect::<Vec<_>>()));
-        v.push(iter_from_vec("D".chars().collect::<Vec<_>>()));
-        v.push(iter_from_vec("EF".chars().collect::<Vec<_>>()));
+        v.push(generate_okok_iterator("ABC".chars().collect::<Vec<_>>()));
+        v.push(generate_okok_iterator("D".chars().collect::<Vec<_>>()));
+        v.push(generate_okok_iterator("EF".chars().collect::<Vec<_>>()));
 
         let ret = roundrobin(v).collect::<Vec<_>>();
-        assert_eq!(vec!['A', 'D', 'E', 'B', 'F', 'C'], ret);
+        assert_eq!(vec!['A', 'D', 'E', 'B', 'F', 'C'], extract_value_from_result_vec(ret).0);
     }
 }
