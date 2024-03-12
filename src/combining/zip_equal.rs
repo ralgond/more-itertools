@@ -5,7 +5,7 @@ use crate::error::Error;
 pub struct ZipEqual<T> {
     buf: VecDeque<T>,
     buf2: VecDeque<Option<T>>,
-    iter_vec: Vec<Box<dyn Iterator<Item = T>>>,
+    iter_vec: Vec<Box<dyn Iterator<Item = Result<T,Error>>>>,
     iter_finished: bool
 }
 
@@ -29,13 +29,18 @@ T: Clone + 'static
             assert_eq!(0, self.buf2.len());
 
             for i in self.iter_vec.iter_mut() {
-                match i.next() {
-                    None => {
-                        self.buf2.push_back(None);
-                    },
-                    Some(v) => {
-                        self.buf2.push_back(Some(v));
+                if let Some(v) = i.next() {
+                    match v {
+                        Ok(ok_v) => {
+                            self.buf2.push_back(Some(ok_v));
+                        },
+                        Err(err_v) => {
+                            self.iter_finished = true;
+                            return Some(Err(err_v));
+                        }
                     }
+                } else {
+                    self.buf2.push_back(None);
                 }
             }
 
@@ -80,7 +85,7 @@ T: Clone + 'static
     }
 }
 
-pub fn zip_equal<T>(iter_vec: Vec<Box<dyn Iterator<Item = T>>>) -> Box<dyn Iterator<Item = Result<Vec<T>,Error>>> 
+pub fn zip_equal<T>(iter_vec: Vec<Box<dyn Iterator<Item = Result<T,Error>>>>) -> Box<dyn Iterator<Item = Result<Vec<T>,Error>>> 
 where T: Clone + 'static
 {
     Box::new(ZipEqual {
@@ -93,16 +98,32 @@ where T: Clone + 'static
 
 #[cfg(test)]
 mod tests {
-    use crate::itertools::iter::iter_from_vec;
+
+    use crate::utils::{generate_okok_iterator, generate_okokerr_iterator};
 
     use super::*;
 
     #[test]
     fn test1() {
         let mut v = Vec::new();
-        v.push(iter_from_vec(vec![1,2,3]));
-        v.push(iter_from_vec(vec![4,5]));
-        v.push(iter_from_vec(vec![6,7,8]));
+        v.push(generate_okok_iterator(vec![1,2,3]));
+        v.push(generate_okok_iterator(vec![4,5,6]));
+        v.push(generate_okok_iterator(vec![6,7,8]));
+
+        let mut iter = zip_equal(v);
+
+        assert_eq!(Some(Ok(vec![1, 4, 6])), iter.next());
+        assert_eq!(Some(Ok(vec![2, 5, 7])), iter.next());
+        assert_eq!(Some(Ok(vec![3, 6, 8])), iter.next());
+        assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn test2() {
+        let mut v = Vec::new();
+        v.push(generate_okok_iterator(vec![1,2,3]));
+        v.push(generate_okok_iterator(vec![4,5]));
+        v.push(generate_okok_iterator(vec![6,7,8]));
 
         let mut iter = zip_equal(v);
 
@@ -111,4 +132,20 @@ mod tests {
         assert_eq!(error::Kind::IteratorError, iter.next().unwrap().err().unwrap().kind());
         assert_eq!(None, iter.next());
     }
+
+    #[test]
+    fn test3() {
+        let mut v = Vec::new();
+        v.push(generate_okok_iterator(vec![1,2,3]));
+        v.push(generate_okokerr_iterator(vec![4,5], error::overflow_error("[test]".to_string())));
+        v.push(generate_okok_iterator(vec![6,7,8]));
+
+        let mut iter = zip_equal(v);
+
+        assert_eq!(Some(Ok(vec![1, 4, 6])), iter.next());
+        assert_eq!(Some(Ok(vec![2, 5, 7])), iter.next());
+        assert_eq!(error::Kind::OverflowError, iter.next().unwrap().err().unwrap().kind());
+        assert_eq!(None, iter.next());
+    }
+
 }
