@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use crate::error::Error;
 
 use crate::selecting::take::take;
 
@@ -6,7 +7,7 @@ use crate::selecting::take::take;
 pub struct ZipOffset<T> {
     buf: VecDeque<T>,
     buf2: VecDeque<Option<T>>,
-    iter_vec: Vec<Box<dyn Iterator<Item = T>>>,
+    iter_vec: Vec<Box<dyn Iterator<Item = Result<T,Error>>>>,
     iter_finished: bool,
     longest: bool,
     fillvalue: T
@@ -16,7 +17,7 @@ impl<T> Iterator for ZipOffset<T>
 where
 T: Clone + 'static
 {
-    type Item = Vec<T>;
+    type Item = Result<Vec<T>,Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -30,19 +31,24 @@ T: Clone + 'static
                 while self.buf.len() > 0 {
                     ret.push(self.buf.pop_front().unwrap());
                 }
-                return Some(ret);
+                return Some(Ok(ret));
             }
 
             assert_eq!(0, self.buf2.len());
 
             for i in self.iter_vec.iter_mut() {
-                match i.next() {
-                    None => {
-                        self.buf2.push_back(None);
-                    },
-                    Some(v) => {
-                        self.buf2.push_back(Some(v));
+                if let Some(v) = i.next() {
+                    match v {
+                        Ok(ok_v) => {
+                            self.buf2.push_back(Some(ok_v));
+                        },
+                        Err(err_v) => {
+                            self.iter_finished = true;
+                            return Some(Err(err_v));
+                        }
                     }
+                } else {
+                    self.buf2.push_back(None);
                 }
             }
 
@@ -84,10 +90,10 @@ T: Clone + 'static
     }
 }
 
-pub fn zip_offset<T>(mut iter_vec: Vec<Box<dyn Iterator<Item = T>>>,
+pub fn zip_offset<T>(mut iter_vec: Vec<Box<dyn Iterator<Item = Result<T,Error>>>>,
             offsets_vec: Vec<usize>,
             longest: bool,
-            fillvalue: T) -> Box<dyn Iterator<Item = Vec<T>>> 
+            fillvalue: T) -> Box<dyn Iterator<Item = Result<Vec<T>,Error>>> 
 where T: Clone + 'static            
 {
     for (index, offset) in offsets_vec.iter().enumerate() {
@@ -109,7 +115,7 @@ where T: Clone + 'static
 #[cfg(test)]
 mod tests {
 
-    use crate::itertools::iter::iter_from_vec;
+    use crate::{error, utils::{extract_value_from_result_vec, generate_okok_iterator, generate_okokerr_iterator}};
 
     use super::*;
 
@@ -119,11 +125,26 @@ mod tests {
         let v2 = "abcdef".chars().collect::<Vec<_>>();
 
         let mut v = Vec::new();
-        v.push(iter_from_vec(v1));
-        v.push(iter_from_vec(v2));
+        v.push(generate_okok_iterator(v1));
+        v.push(generate_okok_iterator(v2));
 
         let ret = zip_offset(v, vec![0,1], false, '9');
-        assert_eq!(vec![vec!['0', 'b'], vec!['1', 'c'], vec!['2', 'd'], vec!['3', 'e']], ret.collect::<Vec<_>>());
+        let ret2 = extract_value_from_result_vec(ret.collect::<Vec<_>>());
+        assert_eq!(vec![vec!['0', 'b'], vec!['1', 'c'], vec!['2', 'd'], vec!['3', 'e']], ret2.0);
+
+        // =================================================
+
+        let v1 = "0123".chars().collect::<Vec<_>>();
+        let v2 = "abcdef".chars().collect::<Vec<_>>();
+
+        let mut v = Vec::new();
+        v.push(generate_okok_iterator(v2));
+        v.push(generate_okok_iterator(v1));
+
+        let ret = zip_offset(v, vec![0,1], false, '9');
+        let ret2 = extract_value_from_result_vec(ret.collect::<Vec<_>>());
+        assert_eq!(vec![vec!['a', '1'], vec!['b', '2'], vec!['c', '3']], ret2.0);
+        assert_eq!(None, ret2.1);
     }
 
     #[test]
@@ -132,11 +153,40 @@ mod tests {
         let v2 = "abcdef".chars().collect::<Vec<_>>();
 
         let mut v = Vec::new();
-        v.push(iter_from_vec(v1));
-        v.push(iter_from_vec(v2));
+        v.push(generate_okok_iterator(v1));
+        v.push(generate_okok_iterator(v2));
 
         let ret = zip_offset(v, vec![0,1], true, '9');
-        assert_eq!(vec![vec!['0', 'b'], vec!['1', 'c'], vec!['2', 'd'], vec!['3', 'e'], vec!['9', 'f']], ret.collect::<Vec<_>>());
+        let ret2 = extract_value_from_result_vec(ret.collect::<Vec<_>>());
+        assert_eq!(vec![vec!['0', 'b'], vec!['1', 'c'], vec!['2', 'd'], vec!['3', 'e'], vec!['9', 'f']], ret2.0);
+    }
+
+    #[test]
+    fn test3() {
+        let v1 = "0123".chars().collect::<Vec<_>>();
+        let v2 = "abcdef".chars().collect::<Vec<_>>();
+
+        let mut v = Vec::new();
+        v.push(generate_okokerr_iterator(v1, error::overflow_error("[test]".to_string())));
+        v.push(generate_okok_iterator(v2));
+
+        let ret = zip_offset(v, vec![0,1], false, '9');
+        let ret2 = extract_value_from_result_vec(ret.collect::<Vec<_>>());
+        assert_eq!(vec![vec!['0', 'b'], vec!['1', 'c'], vec!['2', 'd'], vec!['3', 'e']], ret2.0);
+        assert_eq!(error::Kind::OverflowError, ret2.1.unwrap().kind());
+
+
+        let v1 = "0123".chars().collect::<Vec<_>>();
+        let v2 = "abcdef".chars().collect::<Vec<_>>();
+
+        let mut v = Vec::new();
+        v.push(generate_okok_iterator(v1));
+        v.push(generate_okokerr_iterator(v2, error::overflow_error("[test]".to_string())));
+        
+        let ret = zip_offset(v, vec![0,1], false, '9');
+        let ret2 = extract_value_from_result_vec(ret.collect::<Vec<_>>());
+        assert_eq!(vec![vec!['0', 'b'], vec!['1', 'c'], vec!['2', 'd'], vec!['3', 'e']], ret2.0);
+        assert_eq!(None, ret2.1);
     }
 }
 
