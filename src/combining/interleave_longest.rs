@@ -98,7 +98,7 @@ where T: Clone + 'static
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{extract_value_from_result_vec, generate_okok_iterator};
+    use crate::{error, utils::{extract_value_from_result_vec, generate_okok_iterator, generate_okokerr_iterator}};
 
     use super::*;
 
@@ -122,5 +122,15 @@ mod tests {
         let ret = interleave_longest(v, Some(0)).collect::<Vec<_>>();
         assert_eq!(vec![1, 4, 6, 2, 5, 7, 3, 0, 8], extract_value_from_result_vec(ret).0);
         //println!("{:?}", ret);
+
+        let mut v = Vec::new();
+        v.push(generate_okok_iterator(vec![1,2,3]));
+        v.push(generate_okokerr_iterator(vec![4,5], error::overflow_error("[test]".to_string())));
+        v.push(generate_okok_iterator(vec![6,7,8]));
+
+        let ret = interleave_longest(v, None).collect::<Vec<_>>();
+        let ret1 = extract_value_from_result_vec(ret);
+        assert_eq!(vec![1, 4, 6, 2, 5, 7], ret1.0);
+        assert_eq!(error::Kind::OverflowError, ret1.1.unwrap().kind());
     }
 }
