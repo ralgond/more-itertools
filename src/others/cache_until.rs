@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, fmt::Debug};
+use std::collections::VecDeque;
 use crate::{error, error::Error, utils::vecdeque_2_vec};
 
 struct CacheUntil<T> {
@@ -10,7 +10,7 @@ struct CacheUntil<T> {
 }
 
 impl<T> Iterator for CacheUntil<T> 
-where T: Clone + Debug
+where T: Clone
 {
     type Item = Result<Vec<T>, Error>;
 
@@ -64,7 +64,7 @@ where T: Clone + Debug
 }
 
 pub fn cache_util<T>(iter: Box<dyn Iterator<Item = Result<T,Error>>>, pred: fn(&T) -> Result<bool, Error>, pred_append_tail: bool) -> Box<dyn Iterator<Item = Result<Vec<T>,Error>>> 
-where T: Clone + Debug + 'static
+where T: Clone + 'static
 {
     return Box::new(CacheUntil {
         buf: VecDeque::new(),
