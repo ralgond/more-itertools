@@ -66,7 +66,7 @@ where T: Clone
     }
 }
 
-pub fn cache_util<T>(iter: Box<dyn Iterator<Item = Result<T,Error>>>, 
+pub fn cache_until<T>(iter: Box<dyn Iterator<Item = Result<T,Error>>>, 
     pred: fn(&T) -> Result<bool, Error>,
     max_pred_execute_count: i128,
     pred_append_tail: bool) -> Box<dyn Iterator<Item = Result<Vec<T>,Error>>> 
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn test1() {
         let v = vec![1,2,3,4,5];
-        let mut it = cache_util(generate_okok_iterator(v), |x| {Ok(*x==1||*x==2||*x==5)}, -1, true);
+        let mut it = cache_until(generate_okok_iterator(v), |x| {Ok(*x==1||*x==2||*x==5)}, -1, true);
         assert_eq!(Some(Ok(vec![1])), it.next());
         assert_eq!(Some(Ok(vec![2])), it.next());
         assert_eq!(Some(Ok(vec![3, 4, 5])), it.next());
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn test1_max_pred_execute_count() {
         let v = vec![1,2,3,4,5];
-        let mut it = cache_util(generate_okok_iterator(v), |x| {Ok(*x==1||*x==2||*x==5)}, 2, true);
+        let mut it = cache_until(generate_okok_iterator(v), |x| {Ok(*x==1||*x==2||*x==5)}, 2, true);
         assert_eq!(Some(Ok(vec![1])), it.next());
         assert_eq!(Some(Ok(vec![2])), it.next());
         assert_eq!(Some(Ok(vec![3, 4, 5])), it.next());
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn test1_error() {
         let v = vec![1,2,3,4,5];
-        let mut it = cache_util(generate_okokerr_iterator(v, error::overflow_error("[test]".to_string())), 
+        let mut it = cache_until(generate_okokerr_iterator(v, error::overflow_error("[test]".to_string())), 
                 |x| {Ok(*x==1||*x==2||*x==5)}, 2, true);
         assert_eq!(Some(Ok(vec![1])), it.next());
         assert_eq!(Some(Ok(vec![2])), it.next());
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn test2() {
         let v = vec![1,2,3,4,5];
-        let mut it = cache_util(generate_okok_iterator(v), |x| {Ok(*x==1||*x==2||*x==5)}, -1, false);
+        let mut it = cache_until(generate_okok_iterator(v), |x| {Ok(*x==1||*x==2||*x==5)}, -1, false);
         assert_eq!(Some(Ok(Vec::<i32>::new())), it.next());
         assert_eq!(Some(Ok(vec![1])), it.next());
         assert_eq!(Some(Ok(vec![2,3,4])), it.next());
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn test2_max_pred_execute_count() {
         let v = vec![1,2,3,4,5];
-        let mut it = cache_util(generate_okok_iterator(v), |x| {Ok(*x==1||*x==2||*x==5)}, 2, false);
+        let mut it = cache_until(generate_okok_iterator(v), |x| {Ok(*x==1||*x==2||*x==5)}, 2, false);
         assert_eq!(Some(Ok(Vec::<i32>::new())), it.next());
         assert_eq!(Some(Ok(vec![1])), it.next());
         assert_eq!(Some(Ok(vec![2,3,4,5])), it.next());
@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn test2_error() {
         let v = vec![1,2,3,4,5];
-        let mut it = cache_util(generate_okokerr_iterator(v, error::overflow_error("[test]".to_string())), 
+        let mut it = cache_until(generate_okokerr_iterator(v, error::overflow_error("[test]".to_string())), 
                 |x| {Ok(*x==1||*x==2||*x==5)}, 2, false);
         assert_eq!(Some(Ok(Vec::<i32>::new())), it.next());
         assert_eq!(Some(Ok(vec![1])), it.next());
