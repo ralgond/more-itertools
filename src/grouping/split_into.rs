@@ -1,5 +1,7 @@
 use std::collections::LinkedList;
 
+use crate::error::Error;
+
 struct SplitIntoOutputItem<T> {
     items: Vec<T>,
     size: usize,
@@ -9,21 +11,21 @@ struct SplitIntoOutputItem<T> {
 pub struct SplitInto<T>
 {
     ret_buf: LinkedList<SplitIntoOutputItem<T>>,
-    iter: Box<dyn Iterator<Item = T>>,
+    iter: Box<dyn Iterator<Item = Result<T,Error>>>,
     sizes: Vec<usize>,
     iter_finished: bool
 }
 
 impl<T> Iterator for SplitInto<T>
 {
-    type Item = Vec<T>;
+    type Item = Result<Vec<T>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.iter_finished {
                 if self.ret_buf.len() > 0 {
                     let front = self.ret_buf.pop_front();
-                    return Some(front.unwrap().items);
+                    return Some(Ok(front.unwrap().items));
                 } else {
                     return None;
                 }
@@ -37,20 +39,28 @@ impl<T> Iterator for SplitInto<T>
 
                 if front.finished {
                     let front = self.ret_buf.pop_front();
-                    return Some(front.unwrap().items);
+                    return Some(Ok(front.unwrap().items));
                 }
             }
 
             let _next = self.iter.next();
             if let Some(v) = _next {
-                if self.ret_buf.len() == 0 {
-                    continue;
+                match v {
+                    Ok(ok_v) => {
+                        if self.ret_buf.len() == 0 {
+                            continue;
+                        }
+
+                        let front = self.ret_buf.front_mut();
+                        front.unwrap().items.push(ok_v);
+
+                        continue;
+                    },
+                    Err(err_v) => { // upstream error
+                        self.iter_finished = true;
+                        return Some(Err(err_v));
+                    }
                 }
-
-                let front = self.ret_buf.front_mut();
-                front.unwrap().items.push(v);
-
-                continue;
             } else {
                 self.iter_finished = true;
                 for item in self.ret_buf.iter_mut() {
@@ -62,7 +72,7 @@ impl<T> Iterator for SplitInto<T>
     }
 }
 
-pub fn split_into<T>(iter: Box<dyn Iterator<Item = T>>, sizes: Vec<usize>) -> Box<dyn Iterator<Item = Vec<T>>>
+pub fn split_into<T>(iter: Box<dyn Iterator<Item = Result<T,Error>>>, sizes: Vec<usize>) -> Box<dyn Iterator<Item = Result<Vec<T>,Error>>>
 where
 T: 'static
 {
@@ -87,7 +97,7 @@ T: 'static
 
 #[cfg(test)]
 mod tests {
-    use crate::itertools::iter::iter_from_vec;
+    use crate::{error, utils::{extract_value_from_result_vec, generate_okok_iterator, generate_okokerr_iterator}};
 
     use super::*;
 
@@ -95,30 +105,50 @@ mod tests {
     fn test1() {
         let v = vec![1,2,3,4,5,6];
         let sizes = vec![1,2,3];
-        let si = split_into(iter_from_vec(v), sizes);
+        let si = split_into(generate_okok_iterator(v), sizes);
         let ret = si.collect::<Vec<_>>();
-        assert_eq!(vec![vec![1], vec![2, 3], vec![4, 5, 6]], ret);
+        let ret2 = extract_value_from_result_vec(ret);
+        assert_eq!(vec![vec![1], vec![2, 3], vec![4, 5, 6]], ret2.0);
 
         let v = vec![1,2,3,4,5,6];
         let sizes = vec![2,3];
-        let si = split_into(iter_from_vec(v), sizes);
+        let si = split_into(generate_okok_iterator(v), sizes);
         let ret = si.collect::<Vec<_>>();
-        // println!("{:?}", ret);
-        assert_eq!(vec![vec![1, 2], vec![3, 4, 5]], ret);
+        let ret2 = extract_value_from_result_vec(ret);
+        assert_eq!(vec![vec![1, 2], vec![3, 4, 5]], ret2.0);
 
         let v = vec![1,2,3,4];
         let sizes = vec![1,2,3,4];
-        let si = split_into(iter_from_vec(v), sizes);
+        let si = split_into(generate_okok_iterator(v), sizes);
         let ret = si.collect::<Vec<_>>();
-        // println!("{:?}", ret);
-        assert_eq!(vec![vec![1], vec![2, 3], vec![4], vec![]], ret);
+        let ret2 = extract_value_from_result_vec(ret);
+        assert_eq!(vec![vec![1], vec![2, 3], vec![4], vec![]], ret2.0);
 
         let v = vec![1,2,3,4];
         let sizes = vec![1,2,0,3,4];
-        let si = split_into(iter_from_vec(v), sizes);
+        let si = split_into(generate_okok_iterator(v), sizes);
         let ret = si.collect::<Vec<_>>();
-        // println!("{:?}", ret);
-        assert_eq!(vec![vec![1], vec![2, 3], vec![], vec![4], vec![]], ret);
+        let ret2 = extract_value_from_result_vec(ret);
+        assert_eq!(vec![vec![1], vec![2, 3], vec![], vec![4], vec![]], ret2.0);
+    }
+
+    #[test]
+    fn test1_error() {
+        let v = vec![1,2,3,4,5,6];
+        let sizes = vec![1,2,3];
+        let si = split_into(generate_okokerr_iterator(v, error::overflow_error("[test]".to_string())), sizes);
+        let ret = si.collect::<Vec<_>>();
+        let ret2 = extract_value_from_result_vec(ret);
+        assert_eq!(vec![vec![1], vec![2, 3], vec![4, 5, 6]], ret2.0);
+        assert_eq!(error::Kind::OverflowError, ret2.1.unwrap().kind());
+
+        let v = vec![1,2,3,4,5,6];
+        let sizes = vec![1,2,4];
+        let si = split_into(generate_okokerr_iterator(v, error::overflow_error("[test]".to_string())), sizes);
+        let ret = si.collect::<Vec<_>>();
+        let ret2 = extract_value_from_result_vec(ret);
+        assert_eq!(vec![vec![1], vec![2, 3]], ret2.0);
+        assert_eq!(error::Kind::OverflowError, ret2.1.unwrap().kind());
     }
 
 }
