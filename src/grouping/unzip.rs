@@ -111,7 +111,7 @@ pub fn unzip5<T0, T1, T2, T3, T4>(iter: &mut Box<dyn Iterator<Item = Result<(T0,
 
 #[cfg(test)]
 mod tests {
-    use crate::{error, itertools::iter::iter_from_vec, utils::{generate_okok_iterator, generate_okokerr_iterator}};
+    use crate::{error, utils::{generate_okok_iterator, generate_okokerr_iterator}};
 
     use super::*;
 

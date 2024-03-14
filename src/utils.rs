@@ -1,6 +1,6 @@
 use crate::error;
 use crate::error::Error;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 
 pub fn extract_value_from_result_vec<T>(vec: Vec<Result<T, Error>>) -> (Vec<T>, Option<Error>) {
@@ -185,6 +185,14 @@ T: Clone + 'static
     });
 }
 
+pub fn vecdeque_2_vec<T>(vd: &mut VecDeque<T>) -> Vec<T> {
+    let mut ret = Vec::<T>::new();
+    while vd.len() > 0 {
+        ret.push(vd.pop_front().unwrap());
+    }
+    return ret;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,5 +256,15 @@ mod tests {
         assert_eq!(&3, hm.get(&3).unwrap());
         assert_eq!(&4, hm.get(&4).unwrap());
         assert_eq!(&5, hm.get(&5).unwrap());
+    }
+
+    #[test]
+    fn test_vecdeque_2_vec() {
+        let mut vd = VecDeque::new();
+        vd.push_back(1i32);
+        vd.push_back(2i32);
+        vd.push_back(3i32);
+
+        assert_eq!(vec![1,2,3], vecdeque_2_vec(&mut vd));
     }
 }
