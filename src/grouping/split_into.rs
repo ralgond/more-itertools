@@ -42,24 +42,21 @@ impl<T> Iterator for SplitInto<T>
             }
 
             let _next = self.iter.next();
-            match _next {
-                None => {
-                    self.iter_finished = true;
-                    for item in self.ret_buf.iter_mut() {
-                        item.finished = true;
-                    }
-                    continue;
-                },
-                Some(v) => {
-                    if self.ret_buf.len() == 0 {
-                        continue;
-                    }
-
-                    let front = self.ret_buf.front_mut();
-                    front.unwrap().items.push(v);
-
+            if let Some(v) = _next {
+                if self.ret_buf.len() == 0 {
                     continue;
                 }
+
+                let front = self.ret_buf.front_mut();
+                front.unwrap().items.push(v);
+
+                continue;
+            } else {
+                self.iter_finished = true;
+                for item in self.ret_buf.iter_mut() {
+                    item.finished = true;
+                }
+                continue;
             }
         }
     }
