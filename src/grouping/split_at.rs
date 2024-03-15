@@ -73,7 +73,8 @@ impl<T> Iterator for SplitAt<T>
                         let pred_ret = (self.pred)(&ok_v);
                         match pred_ret {
                             Ok(ok_pred_ret) => {
-                                if ok_pred_ret { // meet a seperator
+                                if ok_pred_ret && (self.maxsplit < 0 || self.splited < self.maxsplit) { // meet a seperator
+                                    self.splited += 1;
                                     self.set_last_output_item_finished();
                                     self.ret_buf.push_back(SplitAtOutputItem::new(true, vec![ok_v], None, true));
                                     self.ret_buf.push_back(SplitAtOutputItem::new(false, Vec::new(), None, false));
@@ -144,6 +145,22 @@ mod tests {
         let iter = split_at(generate_okok_iterator(v), |x|{Ok(*x==1 || *x==5)}, -1, true);
         let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
         assert_eq!(vec![vec![],vec![1],vec![2,3,4],vec![5],vec![]], ret.0);
+
+        let v = vec![3,3,3];
+        let iter = split_at(generate_okok_iterator(v), |x|{Ok(*x==3)}, -1, true);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        assert_eq!(vec![vec![],vec![3],vec![],vec![3],vec![],vec![3],vec![]], ret.0);
+        // println!("{:?}", ret);
+    }
+
+    #[test]
+    fn test1_maxsplit() {
+
+        let v = vec![1,2,3,4,5];
+        let iter = split_at(generate_okok_iterator(v), |x|{Ok(*x==1 || *x==5)}, 1, true);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        // println!("{:?}", ret);
+        assert_eq!(vec![vec![],vec![1],vec![2,3,4,5]], ret.0);
     }
 
     #[test]
