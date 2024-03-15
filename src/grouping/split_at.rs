@@ -161,6 +161,12 @@ mod tests {
         let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
         // println!("{:?}", ret);
         assert_eq!(vec![vec![],vec![1],vec![2,3,4,5]], ret.0);
+
+        let v = vec![1,2,3,4,5];
+        let iter = split_at(generate_okok_iterator(v), |x|{Ok(*x==1 || *x==5)}, 0, true);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        // println!("{:?}", ret);
+        assert_eq!(vec![vec![1,2,3,4,5]], ret.0);
     }
 
     #[test]
