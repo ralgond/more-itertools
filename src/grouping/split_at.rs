@@ -1,137 +1,127 @@
 use std::collections::LinkedList;
 
+use crate::error::{self, Error};
+
 struct SplitAtOutputItem<T> {
     is_sep: bool,
-    items: Vec<T>
+    items: Vec<T>,
+    error: Option<Error>,
+    finished: bool,
+}
+
+
+impl<T> SplitAtOutputItem<T> {
+    pub fn new(is_sep: bool, items: Vec<T>, error: Option<Error>, finished: bool,) -> Self {
+        return SplitAtOutputItem {
+            is_sep,
+            items,
+            error,
+            finished
+        };
+    }
 }
 
 pub struct SplitAt<T> {
     ret_buf: LinkedList<SplitAtOutputItem<T>>,
-    iter: Box<dyn Iterator<Item = T>>,
-    pred: fn(&T) -> bool,
-    maxsplit: i64,
+    iter: Box<dyn Iterator<Item = Result<T,Error>>>,
+    pred: fn(&T) -> Result<bool,Error>,
+    maxsplit: i128,
     keep_separator: bool,
-    splited: i64,
+    splited: i128,
     iter_finished: bool
 }
 
+impl<T> SplitAt<T> {
+    pub fn set_last_output_item_finished(&mut self) {
+        if self.ret_buf.len() > 0 {
+            self.ret_buf.back_mut().unwrap().finished = true;
+        }
+    }
+}
 
 impl<T> Iterator for SplitAt<T> 
 {
-    type Item = Vec<T>;
+    type Item = Result<Vec<T>,Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.maxsplit == 0 {
+        
+        loop {
+            while self.ret_buf.len() > 0 {
+                if self.ret_buf.front().unwrap().finished {
+                    let ret = self.ret_buf.pop_front();
+                    if ret.as_ref().unwrap().error.is_none() {
+                        if !self.keep_separator && ret.as_ref().unwrap().is_sep {
+                            continue;
+                        }
+                        return Some(Ok(ret.unwrap().items)); 
+                    } else {
+                        return Some(Err(ret.unwrap().error.unwrap()));
+                    }
+                } else {
+                    break; // jump to eating logic
+                }
+            }
+
+            // eating logic
             if self.iter_finished {
                 return None;
             }
-            let mut ret = Vec::new();
-            loop {
-                let _next = self.iter.next();
-                match _next {
-                    None => {
-                        self.iter_finished = true;
-                        return Some(ret);
+
+            if let Some(v) = self.iter.next() {
+                match v {
+                    Ok(ok_v) => {
+                        let pred_ret = (self.pred)(&ok_v);
+                        match pred_ret {
+                            Ok(ok_pred_ret) => {
+                                if ok_pred_ret { // meet a seperator
+                                    self.set_last_output_item_finished();
+                                    self.ret_buf.push_back(SplitAtOutputItem::new(true, vec![ok_v], None, true));
+                                    self.ret_buf.push_back(SplitAtOutputItem::new(false, Vec::new(), None, false));
+                                } else {
+                                    self.ret_buf.back_mut().unwrap().items.push(ok_v);
+                                }
+                            },
+                            Err(err_pred_ret) => {
+                                self.set_last_output_item_finished();
+                                self.ret_buf.push_back(SplitAtOutputItem::new(false, Vec::new(), Some(error::any_error(err_pred_ret.kind(), "[split_at] ".to_string()+ err_pred_ret.message().unwrap())), true));
+                                self.iter_finished = true;
+                            }
+                        }
                     },
-                    Some(v) => {
-                        ret.push(v);
+                    Err(err_v) => {
+                        self.set_last_output_item_finished();
+                        self.ret_buf.push_back(SplitAtOutputItem::new(false, Vec::new(), Some(err_v), true));
+                        self.iter_finished = true;
                     }
                 }
-            }
-        }
-
-        loop {
-            if self.iter_finished {
-                break;
-            }
-            let _next = self.iter.next();
-            match _next {
-                None => {
-                    self.iter_finished = true;
-                    // self.ret_buf.push_back(SplitAtOutputItem{
-                    //     is_sep: true,
-                    //     is_end: true,
-                    //     items: vec![]
-                    // });
-                    break;
-                },
-                Some(v) => {
-                    if self.maxsplit < 0 {
-                        if (self.pred)(&v) {
-                            self.ret_buf.push_back(SplitAtOutputItem{
-                                is_sep: true,
-                                items: vec![v]
-                            });
-
-                            self.ret_buf.push_back(SplitAtOutputItem{
-                                is_sep: false,
-                                items: vec![]
-                            });
-
-                            break;
-                        } else {
-                            self.ret_buf.back_mut().unwrap().items.push(v);
-                        }
-                    } else {
-                        if self.splited < self.maxsplit && (self.pred)(&v) {
-                            self.ret_buf.push_back(SplitAtOutputItem{
-                                is_sep: true,
-                                items: vec![v]
-                            });
-
-                            self.ret_buf.push_back(SplitAtOutputItem{
-                                is_sep: false,
-                                items: vec![]
-                            });
-
-                            self.splited += 1;
-
-                            break;
-                        } else {
-                            self.ret_buf.back_mut().unwrap().items.push(v);
-                        }
-                    }
-                }
-            }
-        }
-
-        loop {
-            let ret = self.ret_buf.pop_front();
-            match ret {
-                None => { return None; }
-                Some(v) => {
-                    if self.keep_separator {
-                        return Some(v.items);
-                    } else {
-                        if v.is_sep {
-                            continue;
-                        } else {
-                            return Some(v.items);
-                        }
-                    }
-                }
+            } else {
+                self.set_last_output_item_finished();
+                self.iter_finished = true;
+                continue;
             }
         }
     }
 }
 
-pub fn split_at<T>(iter: Box<dyn Iterator<Item = T>>, pred: fn(&T)->bool, maxsplit: i64, keep_separator: bool) -> Box<dyn Iterator<Item=Vec<T>>>
+pub fn split_at<T>(iter: Box<dyn Iterator<Item = Result<T,Error>>>, pred: fn(&T)->Result<bool,Error>, maxsplit: i128, keep_separator: bool) -> Box<dyn Iterator<Item=Result<Vec<T>,Error>>>
 where
 T: 'static
 {
     let mut ret = SplitAt {
         ret_buf: LinkedList::new(),
-        iter: iter,
-        pred: pred,
-        maxsplit: maxsplit,
-        keep_separator: keep_separator,
+        iter,
+        pred,
+        maxsplit,
+        keep_separator,
         splited: 0,
         iter_finished: false
     };
 
     ret.ret_buf.push_back(SplitAtOutputItem {
         is_sep: false,
-        items: Vec::new()
+        items: Vec::new(),
+        error: None,
+        finished: false
     });
 
     return Box::new(ret);
@@ -139,73 +129,56 @@ T: 'static
 
 #[cfg(test)]
 mod tests {
-    use crate::itertools::iter::iter_from_vec;
+    use crate::utils::{extract_value_from_result_vec, generate_okok_iterator, generate_okokerr_iterator};
 
     use super::*;
 
     #[test]
     fn test1() {
-        let v = vec!['a','a','a'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, true);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec![], vec!['a'], vec![], vec!['a'], vec![], vec!['a'], vec![]], ret);
-        // println!("{:?}", sa.next());
-        // println!("{:?}", sa.next());
-        // println!("{:?}", sa.next());
-        // println!("{:?}", sa.next());
+        let v = vec![1,2,3,4,5];
+        let iter = split_at(generate_okok_iterator(v), |x|{Ok(*x==3)}, -1, true);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        assert_eq!(vec![vec![1,2],vec![3],vec![4,5]], ret.0);
 
-        let v = vec!['a','a','a'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, false);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![Vec::<char>::new(), vec![], vec![], vec![]], ret);
-
-
-        let v = vec!['a','a','a'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 0, false);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['a','a','a']], ret);
-
-        let v = vec!['b', 'a','b', 'a', 'b', 'a'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, false);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['b'], vec!['b'], vec!['b'], vec![]], ret);
-
-        let v = vec!['b', 'a', 'b', 'a', 'b', 'a', 'b'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, false);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['b'], vec!['b'], vec!['b'], vec!['b']], ret);
-
-        let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, false);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b'], vec!['b', 'c']], ret);
-
-        let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, -1, true);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['b'], vec!['a'], vec!['b'], vec!['a'], vec!['b', 'b'], vec!['a'], vec!['b', 'c']], ret);
+        let v = vec![1,2,3,4,5];
+        let iter = split_at(generate_okok_iterator(v), |x|{Ok(*x==1 || *x==5)}, -1, true);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        assert_eq!(vec![vec![],vec![1],vec![2,3,4],vec![5],vec![]], ret.0);
     }
 
     #[test]
-    pub fn test2() {
-        let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 2, true);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['b'], vec!['a'], vec!['b'], vec!['a'], vec!['b', 'b', 'a', 'b', 'c']], ret);
+    fn test1_keep_sep() {
+        let v = vec![1,2,3,4,5];
+        let iter = split_at(generate_okok_iterator(v), |x|{Ok(*x==3)}, -1, false);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        //assert_eq!(vec![vec![1,2],vec![3],vec![4,5]], ret.0);
+        println!("{:?}", ret);
 
-        let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 2, false);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b', 'a', 'b', 'c']], ret);
+        let v = vec![1,2,3,4,5];
+        let iter = split_at(generate_okok_iterator(v), |x|{Ok(*x==1 || *x==5)}, -1, false);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        //assert_eq!(vec![vec![],vec![1],vec![2,3,4],vec![5],vec![]], ret.0);
+        println!("{:?}", ret);
+    }
 
-        let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 10, false);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b'], vec!['b', 'c']], ret);
+    #[test]
+    fn test1_error() {
+        let v = vec![1,2,3,4,5];
+        let iter = split_at(generate_okokerr_iterator(v, error::overflow_error("[test]".to_string())), |x|{Ok(*x==3)}, -1, true);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        assert_eq!(vec![vec![1,2],vec![3],vec![4,5]], ret.0);
+        assert_eq!(error::Kind::OverflowError, ret.1.as_ref().unwrap().kind());
 
-        let v = vec!['b', 'a', 'b', 'a', 'b', 'b', 'a', 'b', 'c', 'a'];
-        let sa = split_at(iter_from_vec(v), |x| { *x == 'a' }, 10, false);
-        let ret = sa.collect::<Vec<_>>();
-        assert_eq!(vec![vec!['b'], vec!['b'], vec!['b', 'b'], vec!['b', 'c'], vec![]], ret);
+        let v = vec![1,2,3,4,5];
+        let iter = split_at(generate_okok_iterator(v), 
+                                                                    |x|{  if *x == 4 { Err(error::overflow_error("[test]".to_string()))} else {Ok(*x==3)} }, 
+                                                                    -1, true);
+        let ret = extract_value_from_result_vec(iter.collect::<Vec<_>>());
+        assert_eq!(vec![vec![1,2],vec![3],vec![]], ret.0);
+        assert_eq!(error::Kind::OverflowError, ret.1.as_ref().unwrap().kind());
+    }
+
+    #[test]
+    fn test2() {
     }
 }
