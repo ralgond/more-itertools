@@ -1,6 +1,6 @@
 [package]
 name = "more-itertools"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 description = "A rust implementation of python more-itertools"
 license = "MIT"
