@@ -14,3 +14,4 @@ repository = "https://github.com/ralgond/more-itertools"
 
 [profile.dev]
 overflow-checks = false
+
